@@ -1,97 +1,529 @@
+/* ── Layout ─────────────────────────────────────────────── */
 .app {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2rem;
-  padding: 2rem;
+  gap: 1.5rem;
+  padding: 2rem 1.5rem 3rem;
   width: 100%;
-  max-width: 680px;
+  max-width: 640px;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.header {
+  text-align: center;
 }
 
 .title {
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 700;
   letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+/* Privacy line */
+.privacy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  color: #3d3d3d;
+  margin-top: 0.4rem;
+  letter-spacing: 0.01em;
 }
 
 .subtitle {
-  color: #888;
-  font-size: 0.95rem;
-  margin-top: -1.5rem;
+  color: #555;
+  font-size: 0.82rem;
+  margin-top: 0.4rem;
 }
 
+/* ── Drop zone ──────────────────────────────────────────── */
 .dropzone {
   width: 100%;
-  min-height: 280px;
-  border: 2px dashed #333;
-  border-radius: 16px;
+  min-height: 180px;
+  border: 2px dashed #2e2e2e;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
-  overflow: hidden;
-  position: relative;
 }
 
 .dropzone:hover,
 .dropzone--active {
-  border-color: #666;
-  background: #1a1a1a;
+  border-color: #555;
+  background: #161616;
 }
 
 .dropzone__hint {
-  color: #555;
+  color: #4a4a4a;
   text-align: center;
-  line-height: 1.7;
-  font-size: 0.95rem;
+  line-height: 1.8;
+  font-size: 0.9rem;
   pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.dropzone__icon {
+  font-size: 1.4rem;
+  opacity: 0.5;
+}
+
+/* ── Preview thumbnail ──────────────────────────────────── */
+.preview-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
 }
 
 .preview-img {
   width: 100%;
-  height: 100%;
-  max-height: 400px;
+  max-height: 180px;
   object-fit: contain;
+  border-radius: 10px;
   display: block;
 }
 
+.swap-btn {
+  background: none;
+  border: 1px solid #2e2e2e;
+  color: #555;
+  font-size: 0.78rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 99px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.swap-btn:hover {
+  border-color: #555;
+  color: #aaa;
+}
+
+/* ── Palette section ────────────────────────────────────── */
+.palette-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ── Controls row (undo + stepper) ──────────────────────── */
+.palette-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Undo button */
+.undo-btn {
+  background: none;
+  border: 1px solid #242424;
+  color: #555;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  font-family: inherit;
+}
+
+.undo-btn:hover:not(:disabled) {
+  border-color: #444;
+  color: #aaa;
+}
+
+.undo-btn:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+/* Stepper */
+.stepper {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.stepper__btn {
+  width: 28px;
+  background: none;
+  border: none;
+  color: #777;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  line-height: 1;
+}
+
+.stepper__btn:hover:not(:disabled) {
+  background: #1e1e1e;
+  color: #ddd;
+}
+
+.stepper__btn:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.stepper__count {
+  min-width: 30px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: #bbb;
+  font-family: 'SF Mono', 'Fira Mono', monospace;
+  border-left: 1px solid #2a2a2a;
+  border-right: 1px solid #2a2a2a;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+/* ── Swatches ────────────────────────────────────────────── */
 .swatches {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 0.75rem;
+  gap: 0.6rem;
   width: 100%;
 }
 
+/* Each swatch is now a <div> with two children:
+   .swatch__color-wrap  (the colored square + lock + toast)
+   .swatch__hex-btn     (hex/rgb labels, clickable to copy)   */
 .swatch {
-  aspect-ratio: 1;
-  border-radius: 12px;
-  border: none;
-  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
   position: relative;
-  overflow: hidden;
-  transition: transform 0.15s;
 }
 
-.swatch:hover {
-  transform: scale(1.06);
+/* Color square wrapper */
+.swatch__color-wrap {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+.swatch__color {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--color);
+  transition: filter 0.15s, transform 0.15s;
+}
+
+.swatch__color-wrap:hover .swatch__color {
+  filter: brightness(1.1);
+  transform: scale(1.03);
+}
+
+/* Ring highlight when HSL panel is open */
+.swatch--open .swatch__color-wrap {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18);
+}
+
+/* Lock button — top-right corner of the square */
+.swatch__lock-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 20px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.45);
+  border: none;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.65);
+  padding: 0;
+  /* Hidden until hover or locked */
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+  backdrop-filter: blur(3px);
+}
+
+.swatch__color-wrap:hover .swatch__lock-btn,
+.swatch__lock-btn--on {
+  opacity: 1;
+}
+
+.swatch__lock-btn--on {
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.swatch__lock-btn:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* Locked swatch: soften the color square slightly */
+.swatch--locked .swatch__color {
+  filter: brightness(0.88);
+}
+
+/* Copy toast — centered over the color square */
+.swatch__toast {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  pointer-events: none;
+  white-space: nowrap;
+  animation: toast-in 0.12s ease;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, -38%); }
+  to   { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+/* Hex / RGB label button */
+.swatch__hex-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  width: 100%;
 }
 
 .swatch__hex {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.55);
-  color: #fff;
-  font-size: 0.6rem;
-  text-align: center;
-  padding: 3px 0;
-  opacity: 0;
-  transition: opacity 0.15s;
-  font-family: monospace;
+  font-family: 'SF Mono', 'Fira Mono', monospace;
+  font-size: 0.62rem;
+  color: #ccc;
+  letter-spacing: 0.02em;
+  line-height: 1;
 }
 
-.swatch:hover .swatch__hex {
+.swatch__rgb {
+  font-family: 'SF Mono', 'Fira Mono', monospace;
+  font-size: 0.55rem;
+  color: #555;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.swatch__hex-btn:hover .swatch__rgb {
   opacity: 1;
+}
+
+/* ── HSL adjustment panel ───────────────────────────────── */
+.hsl-panel {
+  background: #141414;
+  border: 1px solid #252525;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.hsl-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding-bottom: 0.15rem;
+}
+
+.hsl-panel__dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: background 0.1s;
+}
+
+.hsl-panel__title {
+  flex: 1;
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.hsl-panel__close {
+  background: none;
+  border: none;
+  color: #444;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.hsl-panel__close:hover {
+  color: #999;
+}
+
+/* HSL slider row */
+.hsl-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.hsl-row__label {
+  font-size: 0.65rem;
+  color: #4a4a4a;
+  font-family: 'SF Mono', 'Fira Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  width: 30px;
+  flex-shrink: 0;
+}
+
+/* Track container — holds the gradient + the transparent range input */
+.hsl-row__track {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  position: relative;
+  overflow: visible;
+}
+
+.hsl-row__slider {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+  margin: 0;
+}
+
+/* Webkit thumb */
+.hsl-row__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  /* vertically centre the thumb on the 6px track */
+  margin-top: -4px;
+}
+
+/* Firefox thumb */
+.hsl-row__slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Firefox track (must be transparent — gradient lives on .hsl-row__track) */
+.hsl-row__slider::-moz-range-track {
+  background: transparent;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.hsl-row__val {
+  font-size: 0.65rem;
+  color: #555;
+  font-family: 'SF Mono', 'Fira Mono', monospace;
+  width: 38px;
+  text-align: right;
+  flex-shrink: 0;
+  letter-spacing: 0.01em;
+}
+
+/* ── Continuous strip ───────────────────────────────────── */
+.palette-strip {
+  display: flex;
+  width: 100%;
+  height: 40px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.strip-segment {
+  flex: 1;
+  display: block;
+}
+
+/* ── Export ─────────────────────────────────────────────── */
+.export {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.export__label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #3a3a3a;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.export__buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.export__btn {
+  flex: 1;
+  background: #141414;
+  border: 1px solid #242424;
+  color: #777;
+  font-size: 0.75rem;
+  font-family: 'SF Mono', 'Fira Mono', monospace;
+  padding: 0.45rem 0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.export__btn:hover {
+  border-color: #444;
+  color: #ccc;
+  background: #1c1c1c;
+}
+
+.export__btn--copied {
+  border-color: #3a3a3a;
+  color: #aaa;
+  background: #1c1c1c;
 }
