@@ -217,7 +217,17 @@ export default function App() {
   const [visionMode, setVisionMode] = useState('normal')
   const [paletteMode, setPaletteMode] = useState('normal')
   const [exportTab, setExportTab]   = useState('css')
-  const [titleTab, setTitleTab]     = useState('Extract')
+  const [currentView, setCurrentView] = useState('extract')
+
+  // ── Panel resize state ───────────────────────────────────────────────────
+  const [panelWidths, setPanelWidthsState] = useState({ left: 260, right: 280 })
+  const panelWidthsRef = useRef({ left: 260, right: 280 })
+  const dividerDragRef = useRef(null)
+
+  const setPanelWidths = (v) => {
+    panelWidthsRef.current = v
+    setPanelWidthsState(v)
+  }
 
   // ── Refs ─────────────────────────────────────────────────────────────────
   const imgRef          = useRef(null)
@@ -238,9 +248,17 @@ export default function App() {
   const pushToHistory = useCallback((p, l, c) => {
     setHistory(h => [
       ...h.slice(-9),
-      { palette: [...p], locks: [...l], colorCount: c },
+      { palette: [...p], locks: [...l], colorCount: c, at: Date.now() },
     ])
   }, [])
+
+  const restoreFromHistory = (entry) => {
+    setPalette(entry.palette)
+    setLocks(new Set(entry.locks))
+    setColorCount(entry.colorCount)
+    setOpenSlider(null)
+    setCurrentView('extract')
+  }
 
   const undo = () => {
     if (!history.length) return
@@ -250,6 +268,46 @@ export default function App() {
     setColorCount(prev.colorCount)
     setOpenSlider(null)
     setHistory(h => h.slice(0, -1))
+  }
+
+  // ── Panel divider drag ────────────────────────────────────────────────────
+  useEffect(() => {
+    const onMouseMove = (e) => {
+      const d = dividerDragRef.current
+      if (!d) return
+      const delta = e.clientX - d.startX
+      const totalWidth = window.innerWidth
+      const { left, right } = panelWidthsRef.current
+
+      if (d.side === 'left') {
+        let newLeft = Math.min(380, Math.max(180, d.startLeft + delta))
+        const center = totalWidth - newLeft - right - 8
+        if (center < 300) newLeft = totalWidth - right - 308
+        setPanelWidths({ left: newLeft, right })
+      } else {
+        let newRight = Math.min(400, Math.max(200, d.startRight - delta))
+        const center = totalWidth - left - newRight - 8
+        if (center < 300) newRight = totalWidth - left - 308
+        setPanelWidths({ left, right: newRight })
+      }
+    }
+    const onMouseUp = () => { dividerDragRef.current = null }
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [])
+
+  const handleDividerMouseDown = (side, e) => {
+    e.preventDefault()
+    dividerDragRef.current = {
+      side,
+      startX: e.clientX,
+      startLeft:  panelWidthsRef.current.left,
+      startRight: panelWidthsRef.current.right,
+    }
   }
 
   // ── Global extraction ────────────────────────────────────────────────────
@@ -483,19 +541,19 @@ export default function App() {
       <header className="titlebar">
         <div className="titlebar-left">
           <span className="titlebar-dot" />
-          <span className="titlebar-name">PaletteSnap</span>
+          <span className="titlebar-name">PaletteSnap 1</span>
         </div>
         <div className="titlebar-center">
           <ShieldIcon />
           <span className="titlebar-privacy">100% local · no upload · no account</span>
         </div>
         <div className="titlebar-right">
-          {['Extract', 'History'].map(tab => (
+          {[['Extract', 'extract'], ['History', 'history']].map(([label, view]) => (
             <button
-              key={tab}
-              className={`titlebar-tab ${titleTab === tab ? 'titlebar-tab--active' : ''}`}
-              onClick={() => setTitleTab(tab)}
-            >{tab}</button>
+              key={view}
+              className={`titlebar-tab ${currentView === view ? 'titlebar-tab--active' : ''}`}
+              onClick={() => setCurrentView(view)}
+            >{label}</button>
           ))}
         </div>
       </header>
@@ -504,7 +562,7 @@ export default function App() {
       <div className="workspace">
 
         {/* ═══════════ PANEL 1: IMAGE ═══════════ */}
-        <aside className="panel panel--image">
+        <aside className="panel panel--image" style={{ width: panelWidths.left }}>
 
           {/* Panel header */}
           <div className="panel-header">
@@ -632,8 +690,54 @@ export default function App() {
 
         </aside>
 
+        {/* ── Divider 1 ── */}
+        <div
+          className="panel-divider"
+          onMouseDown={(e) => handleDividerMouseDown('left', e)}
+        >
+          <div className="panel-divider-grip" />
+        </div>
+
         {/* ═══════════ PANEL 2: PALETTE ═══════════ */}
-        <main className="panel panel--palette">
+        <main className="panel panel--palette" style={{ flex: 1, minWidth: 300 }}>
+
+          {/* ── History view ── */}
+          {currentView === 'history' && (
+            <div className="history-view">
+              {history.length === 0 ? (
+                <div className="history-empty">
+                  no history yet — extract a palette to get started
+                </div>
+              ) : (
+                <div className="history-list">
+                  {[...history].reverse().map((entry, revIdx) => {
+                    const idx = history.length - revIdx
+                    return (
+                      <button
+                        key={idx}
+                        className="history-entry"
+                        onClick={() => restoreFromHistory(entry)}
+                      >
+                        <div className="history-swatches">
+                          {entry.palette.map((hex, ci) => (
+                            <span
+                              key={ci}
+                              className="history-swatch"
+                              style={{ background: hex }}
+                            />
+                          ))}
+                        </div>
+                        <span className="history-label">Palette {idx}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Extract view ── */}
+          {currentView === 'extract' && (<>
 
           {/* Toolbar */}
           <div className="palette-toolbar">
@@ -780,10 +884,20 @@ export default function App() {
             </div>
           )}
 
+          </>)}
+
         </main>
 
+        {/* ── Divider 2 ── */}
+        <div
+          className="panel-divider"
+          onMouseDown={(e) => handleDividerMouseDown('right', e)}
+        >
+          <div className="panel-divider-grip" />
+        </div>
+
         {/* ═══════════ PANEL 3: INTELLIGENCE ═══════════ */}
-        <aside className="panel panel--intel">
+        <aside className="panel panel--intel" style={{ width: panelWidths.right }}>
 
           {/* Accessibility */}
           <div className="panel-header">

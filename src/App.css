@@ -98,25 +98,114 @@
 }
 
 .panel--image {
-  width: 260px;
   flex-shrink: 0;
-  border-right: 0.5px solid #1A1A1C;
   background: #0D0D0F;
   gap: 0;
 }
 
 .panel--palette {
-  flex: 1;
-  border-right: 0.5px solid #1A1A1C;
   background: #0A0A0B;
   min-width: 0;
-  overflow: hidden; /* panel itself doesn't scroll — swatch-list handles it */
+  overflow: hidden;
 }
 
 .panel--intel {
-  width: 240px;
   flex-shrink: 0;
   background: #0D0D0F;
+}
+
+/* ── Panel dividers ───────────────────────────────────────── */
+.panel-divider {
+  width: 4px;
+  flex-shrink: 0;
+  background: #1A1A1C;
+  cursor: col-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+  user-select: none;
+  position: relative;
+  z-index: 10;
+}
+.panel-divider:hover { background: #2A2A2E; }
+
+.panel-divider-grip {
+  width: 2px;
+  height: 24px;
+  border-radius: 1px;
+  background: repeating-linear-gradient(
+    to bottom,
+    #3A3A40 0px,
+    #3A3A40 3px,
+    transparent 3px,
+    transparent 6px
+  );
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.panel-divider:hover .panel-divider-grip { opacity: 1; }
+
+/* ── History view ─────────────────────────────────────────── */
+.history-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.history-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #3A3A40;
+  text-align: center;
+  padding: 24px;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.history-entry {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  border-bottom: 0.5px solid #141416;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  width: 100%;
+  text-align: left;
+}
+.history-entry:hover { background: #0D0D0F; }
+
+.history-swatches {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.history-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: block;
+  flex-shrink: 0;
+}
+
+.history-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: #3A3A40;
+  letter-spacing: 0.05em;
 }
 
 /* ── Panel headers ───────────────────────────────────────── */
