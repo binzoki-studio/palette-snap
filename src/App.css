@@ -110,7 +110,7 @@
   border-right: 0.5px solid #1A1A1C;
   background: #0A0A0B;
   min-width: 0;
-  overflow-y: auto;
+  overflow: hidden; /* panel itself doesn't scroll — swatch-list handles it */
 }
 
 .panel--intel {
@@ -477,6 +477,7 @@
 .swatch-row-main {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   padding: 10px 16px;
   cursor: pointer;
