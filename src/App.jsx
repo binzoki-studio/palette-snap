@@ -47,6 +47,13 @@ const EXPORT_FORMATS = {
 }
 const EXPORT_LABELS = { css: 'CSS vars', tailwind: 'Tailwind', json: 'JSON', hex: 'Hex list' }
 
+// ── Input mode tab labels ────────────────────────────────────────────────────
+const INPUT_TABS = [
+  { id: 'upload', label: 'Upload' },
+  { id: 'url',    label: 'URL'    },
+  { id: 'camera', label: 'Camera' },
+]
+
 // ── Icons ────────────────────────────────────────────────────────────────────
 function LockIcon({ locked }) {
   return locked ? (
@@ -72,22 +79,32 @@ function ShieldIcon() {
 
 // ── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
+  // Palette state
   const [colorCount, setColorCount] = useState(6)
   const [palette, setPalette]       = useState([])
   const [locks, setLocks]           = useState(new Set())
-  const [openSlider, setOpenSlider] = useState(null)   // index or null
-  const [sliderHsl, setSliderHsl]   = useState(null)   // {h,s,l}
-  const [history, setHistory]       = useState([])     // [{palette, locks}]
+  const [openSlider, setOpenSlider] = useState(null)
+  const [sliderHsl, setSliderHsl]   = useState(null)
+  const [history, setHistory]       = useState([])
+
+  // Image / input state
   const [preview, setPreview]       = useState(null)
+  const [inputMode, setInputMode]   = useState('upload')
+  const [urlInput, setUrlInput]     = useState('')
+  const [urlError, setUrlError]     = useState(null)
   const [dragging, setDragging]     = useState(false)
+
+  // UI state
   const [copied, setCopied]         = useState(null)
 
   const imgRef        = useRef(null)
-  const fileInputRef  = useRef(null)
-  const colorCountRef = useRef(6)
+  const uploadInputRef = useRef(null)
+  const cameraInputRef = useRef(null)
+  const urlInputRef    = useRef(null)
+  const colorCountRef  = useRef(6)
   colorCountRef.current = colorCount
 
-  // ── History helpers ────────────────────────────────────────────────────────
+  // ── History ────────────────────────────────────────────────────────────────
   const pushToHistory = useCallback((currentPalette, currentLocks, currentCount) => {
     setHistory(h => [
       ...h.slice(-9),
@@ -117,7 +134,6 @@ export default function App() {
     )
   }, [])
 
-  // Called when a fresh image finishes loading
   const onImageLoad = async () => {
     const count = colorCountRef.current
     const colors = await getPalette(imgRef.current, { colorCount: count })
@@ -125,15 +141,49 @@ export default function App() {
     setLocks(new Set())
     setOpenSlider(null)
     setHistory([])
+    setUrlError(null)
   }
 
-  const extractPalette = useCallback((file) => {
+  // Called when the preview <img> fails to load (CORS block or broken URL)
+  const onImageError = () => {
+    setPreview(null)
+    setUrlError("Couldn't load that image — try downloading it and uploading directly.")
+  }
+
+  // ── File / drop handlers ───────────────────────────────────────────────────
+  const extractFromFile = useCallback((file) => {
     if (!file || !file.type.startsWith('image/')) return
     setPreview(URL.createObjectURL(file))
     setPalette([])
     setLocks(new Set())
     setOpenSlider(null)
+    setUrlError(null)
   }, [])
+
+  const onFileChange = (e) => extractFromFile(e.target.files[0])
+
+  const onDrop = (e) => {
+    e.preventDefault()
+    setDragging(false)
+    extractFromFile(e.dataTransfer.files[0])
+  }
+
+  // ── URL input ──────────────────────────────────────────────────────────────
+  const handleUrlLoad = () => {
+    const url = urlInput.trim()
+    if (!url) return
+    setUrlError(null)
+    setPreview(url)
+    setPalette([])
+    setLocks(new Set())
+    setOpenSlider(null)
+  }
+
+  // ── "Try another image" — clears preview, returns to input selector ────────
+  const resetToInput = () => {
+    setPreview(null)
+    setUrlError(null)
+  }
 
   // ── Color count stepper ────────────────────────────────────────────────────
   const activeLocksCount = [...locks].filter(i => i < colorCount).length
@@ -141,10 +191,9 @@ export default function App() {
   const handleCountChange = async (delta) => {
     const newCount = colorCount + delta
     if (newCount < 3 || newCount > 10) return
-    if (newCount < activeLocksCount) return  // can't go below locked count
+    if (newCount < activeLocksCount) return
 
     pushToHistory(palette, locks, colorCount)
-    // Drop locks that would fall outside the new range
     const newLocks = new Set([...locks].filter(i => i < newCount))
     setLocks(newLocks)
     setColorCount(newCount)
@@ -170,7 +219,6 @@ export default function App() {
   // ── HSL sliders ────────────────────────────────────────────────────────────
   const handleSwatchClick = (i) => {
     if (locks.has(i)) {
-      // Locked: just copy
       handleCopy(palette[i], i)
       return
     }
@@ -203,21 +251,12 @@ export default function App() {
     setTimeout(() => setCopied(null), 1000)
   }
 
-  // ── Drag / file input ──────────────────────────────────────────────────────
-  const onDrop = (e) => {
-    e.preventDefault()
-    setDragging(false)
-    extractPalette(e.dataTransfer.files[0])
-  }
-
-  const onFileChange = (e) => extractPalette(e.target.files[0])
-
   const canDecrement = colorCount > 3 && (colorCount - 1) >= activeLocksCount
   const canIncrement = colorCount < 10
 
-  // ── HSL slider track gradients ─────────────────────────────────────────────
-  const hueGrad = 'linear-gradient(to right,hsl(0,100%,50%),hsl(60,100%,50%),hsl(120,100%,50%),hsl(180,100%,50%),hsl(240,100%,50%),hsl(300,100%,50%),hsl(360,100%,50%))'
-  const satGrad  = sliderHsl ? `linear-gradient(to right,hsl(${sliderHsl.h},0%,${sliderHsl.l}%),hsl(${sliderHsl.h},100%,${sliderHsl.l}%))` : ''
+  // ── HSL gradient tracks ────────────────────────────────────────────────────
+  const hueGrad   = 'linear-gradient(to right,hsl(0,100%,50%),hsl(60,100%,50%),hsl(120,100%,50%),hsl(180,100%,50%),hsl(240,100%,50%),hsl(300,100%,50%),hsl(360,100%,50%))'
+  const satGrad   = sliderHsl ? `linear-gradient(to right,hsl(${sliderHsl.h},0%,${sliderHsl.l}%),hsl(${sliderHsl.h},100%,${sliderHsl.l}%))` : ''
   const lightGrad = sliderHsl ? `linear-gradient(to right,hsl(${sliderHsl.h},${sliderHsl.s}%,5%),hsl(${sliderHsl.h},${sliderHsl.s}%,50%),hsl(${sliderHsl.h},${sliderHsl.s}%,95%))` : ''
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -232,33 +271,121 @@ export default function App() {
         <p className="subtitle">Extract dominant colors from any image</p>
       </header>
 
-      {/* ── Drop zone / thumbnail ── */}
+      {/* ── Input area ── */}
       {!preview ? (
-        <label
-          className={`dropzone ${dragging ? 'dropzone--active' : ''}`}
-          onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={onDrop}
-        >
-          <span className="dropzone__hint">
-            <span className="dropzone__icon">↑</span>
-            Drag &amp; drop an image<br />or click to browse
-          </span>
-          <input type="file" accept="image/*" hidden onChange={onFileChange} />
-        </label>
+        <div className="input-area">
+
+          {/* Tab selector */}
+          <div className="input-tabs" role="tablist">
+            {INPUT_TABS.map(({ id, label }) => (
+              <button
+                key={id}
+                role="tab"
+                aria-selected={inputMode === id}
+                className={`input-tab ${inputMode === id ? 'input-tab--active' : ''}`}
+                onClick={() => { setInputMode(id); setUrlError(null) }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Upload */}
+          {inputMode === 'upload' && (
+            <label
+              className={`dropzone ${dragging ? 'dropzone--active' : ''}`}
+              onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={onDrop}
+            >
+              <span className="dropzone__hint">
+                <span className="dropzone__icon">↑</span>
+                Drag &amp; drop an image<br />or click to browse
+              </span>
+              <input
+                ref={uploadInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={onFileChange}
+              />
+            </label>
+          )}
+
+          {/* URL */}
+          {inputMode === 'url' && (
+            <div className="url-panel">
+              <div className="url-row">
+                <input
+                  ref={urlInputRef}
+                  type="url"
+                  className="url-input"
+                  placeholder="https://…"
+                  value={urlInput}
+                  onChange={e => { setUrlInput(e.target.value); setUrlError(null) }}
+                  onKeyDown={e => e.key === 'Enter' && handleUrlLoad()}
+                  autoFocus
+                />
+                <button
+                  className="url-submit"
+                  onClick={handleUrlLoad}
+                  disabled={!urlInput.trim()}
+                >
+                  Load
+                </button>
+              </div>
+              {urlError && (
+                <p className="url-error">{urlError}</p>
+              )}
+              <p className="url-hint">
+                Works with Unsplash, most CDNs, and direct image links. Pinterest and similar sites block cross-origin requests — download and upload instead.
+              </p>
+            </div>
+          )}
+
+          {/* Camera */}
+          {inputMode === 'camera' && (
+            <div className="camera-panel">
+              <button
+                className="camera-btn"
+                onClick={() => cameraInputRef.current?.click()}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+                Open camera
+              </button>
+              <p className="camera-hint">
+                Opens your camera on mobile · file picker on desktop
+              </p>
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                hidden
+                onChange={onFileChange}
+              />
+            </div>
+          )}
+
+        </div>
       ) : (
+        /* ── Preview thumbnail ── */
         <div className="preview-area">
           <img
             ref={imgRef}
             src={preview}
             alt="uploaded"
             className="preview-img"
+            crossOrigin="anonymous"
             onLoad={onImageLoad}
+            onError={onImageError}
           />
-          <button className="swap-btn" onClick={() => fileInputRef.current?.click()}>
+          <button className="swap-btn" onClick={resetToInput}>
             ↺ Try another image
           </button>
-          <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={onFileChange} />
         </div>
       )}
 
@@ -304,20 +431,17 @@ export default function App() {
                 key={i}
                 className={[
                   'swatch',
-                  openSlider === i ? 'swatch--open' : '',
-                  locks.has(i)    ? 'swatch--locked' : '',
+                  openSlider === i ? 'swatch--open'   : '',
+                  locks.has(i)    ? 'swatch--locked'  : '',
                 ].join(' ')}
                 style={{ '--color': hex }}
               >
-                {/* Color square */}
                 <div
                   className="swatch__color-wrap"
                   onClick={() => handleSwatchClick(i)}
                   title={locks.has(i) ? 'Locked – click to copy' : 'Click to adjust'}
                 >
                   <span className="swatch__color" />
-
-                  {/* Lock button */}
                   <button
                     className={`swatch__lock-btn ${locks.has(i) ? 'swatch__lock-btn--on' : ''}`}
                     onClick={(e) => toggleLock(i, e)}
@@ -325,14 +449,10 @@ export default function App() {
                   >
                     <LockIcon locked={locks.has(i)} />
                   </button>
-
-                  {/* Copy toast (centered over the square) */}
                   {copied === i && (
                     <span className="swatch__toast">✓ Copied</span>
                   )}
                 </div>
-
-                {/* Hex + RGB labels */}
                 <button
                   className="swatch__hex-btn"
                   onClick={(e) => { e.stopPropagation(); handleCopy(hex, i) }}
@@ -345,23 +465,14 @@ export default function App() {
             ))}
           </div>
 
-          {/* HSL adjustment panel */}
+          {/* HSL panel */}
           {openSlider !== null && sliderHsl && (
             <div className="hsl-panel">
               <div className="hsl-panel__header">
-                <span
-                  className="hsl-panel__dot"
-                  style={{ background: palette[openSlider] }}
-                />
-                <span className="hsl-panel__title">
-                  Adjusting color {openSlider + 1}
-                </span>
-                <button
-                  className="hsl-panel__close"
-                  onClick={() => setOpenSlider(null)}
-                >✕</button>
+                <span className="hsl-panel__dot" style={{ background: palette[openSlider] }} />
+                <span className="hsl-panel__title">Adjusting color {openSlider + 1}</span>
+                <button className="hsl-panel__close" onClick={() => setOpenSlider(null)}>✕</button>
               </div>
-
               {[
                 { key: 'h', label: 'Hue',   max: 360, unit: '°',  grad: hueGrad   },
                 { key: 's', label: 'Sat',   max: 100, unit: '%',  grad: satGrad   },

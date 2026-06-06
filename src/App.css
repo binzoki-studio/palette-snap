@@ -38,22 +38,76 @@
   margin-top: 0.4rem;
 }
 
+/* ── Input area (tabs + mode panels) ───────────────────── */
+.input-area {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Tab row */
+.input-tabs {
+  display: flex;
+  background: #111;
+  border: 1px solid #222;
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+}
+
+.input-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #444;
+  font-size: 0.78rem;
+  font-family: inherit;
+  padding: 0.55rem 0;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  position: relative;
+}
+
+.input-tab:not(:first-child)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  height: 60%;
+  width: 1px;
+  background: #222;
+}
+
+.input-tab:hover {
+  color: #888;
+  background: #161616;
+}
+
+.input-tab--active {
+  color: #ddd;
+  background: #1a1a1a;
+}
+
+
 /* ── Drop zone ──────────────────────────────────────────── */
 .dropzone {
   width: 100%;
-  min-height: 180px;
-  border: 2px dashed #2e2e2e;
-  border-radius: 14px;
+  min-height: 160px;
+  border: 1px solid #222;
+  border-top: none;         /* top edge is the tab row */
+  border-radius: 0 0 12px 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
+  background: #111;
 }
 
 .dropzone:hover,
 .dropzone--active {
-  border-color: #555;
+  border-color: #333;
   background: #161616;
 }
 
@@ -72,6 +126,120 @@
 .dropzone__icon {
   font-size: 1.4rem;
   opacity: 0.5;
+}
+
+/* ── URL panel ──────────────────────────────────────────── */
+.url-panel {
+  width: 100%;
+  background: #111;
+  border: 1px solid #222;
+  padding: 1.1rem 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.url-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.url-input {
+  flex: 1;
+  background: #0d0d0d;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  color: #ccc;
+  font-size: 0.82rem;
+  font-family: 'SF Mono', 'Fira Mono', monospace;
+  padding: 0.5rem 0.7rem;
+  outline: none;
+  transition: border-color 0.15s;
+  min-width: 0;
+}
+
+.url-input::placeholder {
+  color: #333;
+}
+
+.url-input:focus {
+  border-color: #3a3a3a;
+}
+
+.url-submit {
+  background: #1e1e1e;
+  border: 1px solid #2e2e2e;
+  color: #999;
+  font-size: 0.8rem;
+  font-family: inherit;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.url-submit:hover:not(:disabled) {
+  border-color: #444;
+  color: #ddd;
+  background: #252525;
+}
+
+.url-submit:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.url-error {
+  font-size: 0.75rem;
+  color: #c0614a;
+  line-height: 1.5;
+}
+
+.url-hint {
+  font-size: 0.7rem;
+  color: #333;
+  line-height: 1.6;
+}
+
+/* ── Camera panel ───────────────────────────────────────── */
+.camera-panel {
+  width: 100%;
+  background: #111;
+  border: 1px solid #222;
+  padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.camera-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: #1a1a1a;
+  border: 1px solid #2e2e2e;
+  color: #aaa;
+  font-size: 0.85rem;
+  font-family: inherit;
+  padding: 0.65rem 1.4rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.camera-btn:hover {
+  border-color: #444;
+  color: #ddd;
+  background: #222;
+}
+
+.camera-hint {
+  font-size: 0.7rem;
+  color: #333;
+  text-align: center;
 }
 
 /* ── Preview thumbnail ──────────────────────────────────── */
