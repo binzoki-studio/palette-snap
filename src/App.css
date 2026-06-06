@@ -1,0 +1,97 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem;
+  width: 100%;
+  max-width: 680px;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.subtitle {
+  color: #888;
+  font-size: 0.95rem;
+  margin-top: -1.5rem;
+}
+
+.dropzone {
+  width: 100%;
+  min-height: 280px;
+  border: 2px dashed #333;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  overflow: hidden;
+  position: relative;
+}
+
+.dropzone:hover,
+.dropzone--active {
+  border-color: #666;
+  background: #1a1a1a;
+}
+
+.dropzone__hint {
+  color: #555;
+  text-align: center;
+  line-height: 1.7;
+  font-size: 0.95rem;
+  pointer-events: none;
+}
+
+.preview-img {
+  width: 100%;
+  height: 100%;
+  max-height: 400px;
+  object-fit: contain;
+  display: block;
+}
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.swatch {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s;
+}
+
+.swatch:hover {
+  transform: scale(1.06);
+}
+
+.swatch__hex {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.6rem;
+  text-align: center;
+  padding: 3px 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+  font-family: monospace;
+}
+
+.swatch:hover .swatch__hex {
+  opacity: 1;
+}
