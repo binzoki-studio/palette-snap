@@ -205,28 +205,49 @@ function generateScale(hex) {
 
 function toKebab(name) { return name.toLowerCase().replace(/\s+/g, '-') }
 
+// Deduplicate names — if two colors share a name, append -2, -3, etc.
+function uniqueKebabNames(names) {
+  const count = {}
+  names.forEach(n => { count[n] = (count[n] || 0) + 1 })
+  const seen = {}
+  return names.map(n => {
+    const k = toKebab(n)
+    if (count[n] === 1) return k
+    seen[n] = (seen[n] || 0) + 1
+    return `${k}-${seen[n]}`
+  })
+}
+
 const SCALE_EXPORT_TABS = ['tw4', 'tw3', 'css', 'json']
 const SCALE_EXPORT_FORMATS = {
-  tw4: (palette, scales, names) =>
-    `@theme {\n${palette.map((_, i) =>
-      SHADE_STEPS.map(step => `  --color-${toKebab(names[i])}-${step}: ${scales[i][step].oklch};`).join('\n')
-    ).join('\n')}\n}`,
+  tw4: (palette, scales, names) => {
+    const keys = uniqueKebabNames(names)
+    return `@theme {\n${palette.map((_, i) =>
+      SHADE_STEPS.map(step => `  --color-${keys[i]}-${step}: ${scales[i][step].oklch};`).join('\n')
+    ).join('\n')}\n}`
+  },
   tw3: (palette, scales, names) => {
-    const obj = Object.fromEntries(palette.map((_, i) => [
-      toKebab(names[i]),
-      Object.fromEntries(SHADE_STEPS.map(step => [step, scales[i][step].hex]))
-    ]))
+    const keys = uniqueKebabNames(names)
+    const obj = {}
+    palette.forEach((_, i) => {
+      obj[keys[i]] = Object.fromEntries(SHADE_STEPS.map(step => [step, scales[i][step].hex]))
+    })
     return `colors: ${JSON.stringify(obj, null, 2)}`
   },
-  css: (palette, scales, names) =>
-    `:root {\n${palette.map((_, i) =>
-      SHADE_STEPS.map(step => `  --color-${toKebab(names[i])}-${step}: ${scales[i][step].hex};`).join('\n')
-    ).join('\n')}\n}`,
-  json: (palette, scales, names) => JSON.stringify(
-    Object.fromEntries(palette.map((_, i) => [
-      toKebab(names[i]),
-      Object.fromEntries(SHADE_STEPS.map(step => [step, { hex: scales[i][step].hex, oklch: scales[i][step].oklch }]))
-    ])), null, 2),
+  css: (palette, scales, names) => {
+    const keys = uniqueKebabNames(names)
+    return `:root {\n${palette.map((_, i) =>
+      SHADE_STEPS.map(step => `  --color-${keys[i]}-${step}: ${scales[i][step].hex};`).join('\n')
+    ).join('\n')}\n}`
+  },
+  json: (palette, scales, names) => {
+    const keys = uniqueKebabNames(names)
+    const obj = {}
+    palette.forEach((_, i) => {
+      obj[keys[i]] = Object.fromEntries(SHADE_STEPS.map(step => [step, { hex: scales[i][step].hex, oklch: scales[i][step].oklch }]))
+    })
+    return JSON.stringify(obj, null, 2)
+  },
 }
 
 // ── Export formats ───────────────────────────────────────────────────────────
@@ -1094,6 +1115,9 @@ export default function App() {
                     onClick={() => paletteMode === 'scales' ? setScaleExportTab(tab) : setExportTab(tab)}
                   >{tab}</button>
                 ))}
+                {paletteMode === 'scales' && (
+                  <span className="export-scales-label">{palette.length} colors · 11 steps each</span>
+                )}
               </div>
               <pre
                 className="code-block"

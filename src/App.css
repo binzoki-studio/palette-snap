@@ -779,6 +779,7 @@
 /* ── Scales view ─────────────────────────────────────────── */
 .scales-view {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -901,6 +902,16 @@
 }
 .export-tab--active { color: #E8E8E6; border-bottom-color: #E8E8E6; }
 .export-tab:hover:not(.export-tab--active) { color: #888; }
+
+.export-scales-label {
+  margin-left: auto;
+  font-family: 'DM Mono', monospace;
+  font-size: 9.5px;
+  color: #3A3A40;
+  align-self: center;
+  padding-right: 4px;
+  letter-spacing: 0.02em;
+}
 
 .code-block {
   font-family: 'DM Mono', monospace;
