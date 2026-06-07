@@ -5,12 +5,12 @@ import './App.css'
 // ── Design tokens (mirrored in CSS) ─────────────────────────────────────────
 const C = {
   bg:       '#0A0A0B',
-  surface:  '#0D0D0F',
-  border:   '#1A1A1C',
-  subtle:   '#141416',
+  surface:  '#111116',
+  border:   '#2E2E34',
+  subtle:   '#1C1C22',
   text:     '#E8E8E6',
-  muted:    '#888888',
-  inactive: '#3A3A40',
+  muted:    '#9A9AA4',
+  inactive: '#62626C',
   pass:     '#5BA65B',
   fail:     '#A65B5B',
 }
