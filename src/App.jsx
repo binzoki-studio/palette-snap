@@ -474,7 +474,8 @@ export default function App() {
   const colorCountRef   = useRef(6)
   const locksRef        = useRef(locks)
   const paletteRef      = useRef(palette)
-  const isDraggingRegion = useRef(false)
+  const isDraggingRegion    = useRef(false)
+  const customTemplateRef   = useRef(null)
 
   colorCountRef.current = colorCount
   locksRef.current = locks
@@ -1375,10 +1376,24 @@ export default function App() {
                       </div>
                       <div className="custom-vars-hint">
                         {['{name}', '{hex}', '{rgb}', '{hsl}', '{oklch}', '{role}', '{index}'].map(v => (
-                          <span key={v} className="custom-var-chip">{v}</span>
+                          <span
+                            key={v}
+                            className="custom-var-chip"
+                            onClick={() => {
+                              const el = customTemplateRef.current
+                              if (el && document.activeElement === el) {
+                                const s = el.selectionStart, e2 = el.selectionEnd
+                                setCustomTemplate(t => t.slice(0, s) + v + t.slice(e2))
+                                requestAnimationFrame(() => { el.focus(); el.setSelectionRange(s + v.length, s + v.length) })
+                              } else {
+                                setCustomTemplate(t => t + v)
+                              }
+                            }}
+                          >{v}</span>
                         ))}
                       </div>
                       <textarea
+                        ref={customTemplateRef}
                         className="custom-template-input"
                         value={customTemplate}
                         onChange={e => setCustomTemplate(e.target.value)}

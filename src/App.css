@@ -1356,6 +1356,13 @@
   background: #1C1C22;
   color: #7BAAB0;
   border: 1px solid #2E2E34;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s ease, border-color 0.1s ease;
+}
+.custom-var-chip:hover {
+  background: #2A2A32;
+  border-color: #3E3E46;
 }
 
 .custom-template-input {
