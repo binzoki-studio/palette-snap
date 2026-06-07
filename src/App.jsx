@@ -1171,13 +1171,18 @@ export default function App() {
                   const passLight  = passesAA(ratioLight)
                   const passDark   = passesAA(ratioDark)
                   const fg         = readableText(hex)
+                  // Badge backgrounds must contrast with fg — when fg is black,
+                  // dark overlays are invisible; use light overlays instead.
+                  const isWhiteFg  = fg === '#ffffff'
+                  const passBg  = isWhiteFg ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.7)'
+                  const failBg  = isWhiteFg ? 'rgba(0,0,0,0.38)'       : 'rgba(255,255,255,0.55)'
                   return (
                     <div key={i} className="contrast-row">
 
                       {/* On light */}
                       <div className="contrast-cell" style={{ background: hex, color: fg }}>
                         <span className="contrast-ratio">{ratioLight.toFixed(1)}:1</span>
-                        <span className={`contrast-badge ${passLight ? 'contrast-badge--pass' : 'contrast-badge--fail'}`}>
+                        <span className="contrast-badge" style={{ background: passLight ? passBg : failBg }}>
                           {lvLight}
                         </span>
                         {!passLight && (
@@ -1193,7 +1198,7 @@ export default function App() {
                       {/* On dark */}
                       <div className="contrast-cell" style={{ background: hex, color: fg }}>
                         <span className="contrast-ratio">{ratioDark.toFixed(1)}:1</span>
-                        <span className={`contrast-badge ${passDark ? 'contrast-badge--pass' : 'contrast-badge--fail'}`}>
+                        <span className="contrast-badge" style={{ background: passDark ? passBg : failBg }}>
                           {lvDark}
                         </span>
                         {!passDark && (
