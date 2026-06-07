@@ -1166,3 +1166,210 @@
   background: #141416;
   border-radius: 7px;
 }
+
+/* ── Sprint 2.3 additions ────────────────────────────────── */
+
+/* Undo/redo pair */
+.ctrl-undo-redo {
+  display: flex;
+  gap: 2px;
+}
+
+/* Toolbar right group */
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.download-group {
+  display: flex;
+  gap: 2px;
+}
+
+/* Icon/text toolbar buttons (dark/light, PNG, TXT) */
+.toolbar-icon-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 4px 7px;
+  border: 0.5px solid #1A1A1C;
+  border-radius: 5px;
+  background: #141416;
+  color: #3A3A40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+.toolbar-icon-btn:hover { color: #888; border-color: #2A2A2E; }
+.toolbar-icon-btn--active { color: #E8E8E6; background: #1A1A1C; border-color: #2A2A2E; }
+
+/* Role pill in swatch row */
+.role-pill {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 0.5px solid #1A1A1C;
+  background: #141416;
+  color: #3A3A40;
+  flex-shrink: 0;
+  min-width: 28px;
+  text-align: center;
+  transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+.role-pill:hover { color: #888; border-color: #2A2A2E; }
+.role-pill--active {
+  color: #E8E8E6;
+  background: #1A1A1C;
+  border-color: #2A2A2E;
+}
+
+/* Scales visual/code toggle */
+.scales-view-toggle {
+  display: flex;
+  align-items: center;
+  padding: 6px 16px 0;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.scales-view-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 4px 10px;
+  border: 0.5px solid #1A1A1C;
+  border-radius: 5px;
+  background: #141416;
+  color: #3A3A40;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+.scales-view-btn--active { background: #1A1A1C; color: #E8E8E6; border-color: #2A2A2E; }
+.scales-view-btn:hover:not(.scales-view-btn--active) { color: #888; }
+
+/* Visual scales grid */
+.scales-visual {
+  padding: 8px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scales-visual-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scales-visual-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  color: #888;
+}
+
+.scales-visual-swatches {
+  display: flex;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.scales-visual-swatch {
+  flex: 1;
+  height: 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 4px 3px;
+  position: relative;
+}
+
+.svs-step {
+  font-family: 'DM Mono', monospace;
+  font-size: 7.5px;
+  line-height: 1;
+  opacity: 0.75;
+}
+
+.svs-hex {
+  font-family: 'DM Mono', monospace;
+  font-size: 6px;
+  line-height: 1;
+  opacity: 0.55;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.scales-visual-copy {
+  align-self: flex-end;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 4px 10px;
+  border: 0.5px solid #1A1A1C;
+  border-radius: 5px;
+  background: #141416;
+  color: #3A3A40;
+  transition: color 0.12s ease;
+}
+.scales-visual-copy:hover { color: #888; }
+.scales-visual-copy--copied { color: #5BA65B; border-color: #5BA65B; }
+
+/* Custom export template */
+.custom-template-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0 0;
+}
+
+.custom-template-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 16px;
+}
+
+.custom-preset-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 9.5px;
+  padding: 3px 8px;
+  border: 0.5px solid #1A1A1C;
+  border-radius: 4px;
+  background: #141416;
+  color: #3A3A40;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+.custom-preset-btn:hover { color: #888; }
+.custom-preset-btn--active { background: #1A1A1C; color: #E8E8E6; border-color: #2A2A2E; }
+
+.custom-vars-hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 0 16px;
+}
+
+.custom-var-chip {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #141416;
+  color: #7BAAB0;
+  border: 0.5px solid #1A1A1C;
+}
+
+.custom-template-input {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  background: #0D0D0F;
+  border: none;
+  border-top: 0.5px solid #141416;
+  border-bottom: 0.5px solid #141416;
+  color: #E8E8E6;
+  padding: 8px 16px;
+  resize: none;
+  outline: none;
+  line-height: 1.6;
+  width: 100%;
+  box-sizing: border-box;
+}

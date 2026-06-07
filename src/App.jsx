@@ -218,6 +218,50 @@ function uniqueKebabNames(names) {
   })
 }
 
+// ── Semantic roles ────────────────────────────────────────────────────────────
+const ROLE_ORDER  = [null, 'text', 'bg', 'primary', 'secondary', 'accent']
+const ROLE_LABELS = { text: 'Text', bg: 'BG', primary: '1°', secondary: '2°', accent: 'ACC' }
+const ROLE_PROP   = { text: 'text', bg: 'background', primary: 'primary', secondary: 'secondary', accent: 'accent' }
+
+function autoAssignRoles(pal) {
+  if (!pal.length) return {}
+  const items = pal.map((hex, i) => ({ i, lum: getLuminance(hex), sat: hexToHsl(hex).s }))
+  const byLum = [...items].sort((a, b) => a.lum - b.lum)
+  const result = {}, used = new Set()
+  result[byLum[0].i] = 'text'; used.add(byLum[0].i)
+  const lightestIdx = byLum[byLum.length - 1].i
+  if (!used.has(lightestIdx)) { result[lightestIdx] = 'bg'; used.add(lightestIdx) }
+  const remaining = items.filter(x => !used.has(x.i)).sort((a, b) => b.sat - a.sat)
+  ;['primary', 'secondary', 'accent'].forEach((role, ri) => {
+    if (remaining[ri]) result[remaining[ri].i] = role
+  })
+  return result
+}
+
+// Custom export template engine — variables: {name} {hex} {rgb} {hsl} {oklch} {role} {index}
+const CUSTOM_PRESET_VALUES = {
+  'Sass map':    '  ${name}: {hex},',
+  'JS object':   "  '{name}': '{hex}',",
+  'Swift':       'let {name} = UIColor(hex: "{hex}")',
+  'Android XML': '<color name="{name}">{hex}</color>',
+}
+
+function applyTemplate(tpl, hex, i, rolesMap) {
+  const name = toKebab(getColorName(hex))
+  const { h, s, l } = hexToHsl(hex)
+  const rv = parseInt(hex.slice(1,3),16), gv = parseInt(hex.slice(3,5),16), bv2 = parseInt(hex.slice(5,7),16)
+  const { L, C, H } = hexToOklch(hex)
+  const role = rolesMap[i] ?? ''
+  return tpl
+    .replace(/{name}/g, name)
+    .replace(/{hex}/g, hex)
+    .replace(/{rgb}/g, `${rv}, ${gv}, ${bv2}`)
+    .replace(/{hsl}/g, `${h}, ${s}%, ${l}%`)
+    .replace(/{oklch}/g, oklchToCss(L, C, H))
+    .replace(/{role}/g, role)
+    .replace(/{index}/g, String(i + 1))
+}
+
 const SCALE_EXPORT_TABS = ['tw4', 'tw3', 'css', 'json']
 const SCALE_EXPORT_FORMATS = {
   tw4: (palette, scales, names) => {
@@ -257,7 +301,26 @@ const EXPORT_FORMATS = {
   json:     (p) => JSON.stringify(p, null, 2),
   scss:     (p) => p.map((h, i) => `$color-${i + 1}: ${h};`).join('\n'),
 }
-const EXPORT_TABS = ['css', 'tailwind', 'json', 'scss']
+const EXPORT_TABS = ['css', 'tailwind', 'json', 'scss', 'custom']
+
+function buildExportCode(tab, palette, rolesMap, customTpl) {
+  if (tab === 'custom') {
+    return palette.map((hex, i) => applyTemplate(customTpl, hex, i, rolesMap)).join('\n')
+  }
+  let code = EXPORT_FORMATS[tab](palette)
+  // Append role variables for CSS / SCSS when roles exist
+  const roleEntries = Object.entries(rolesMap).filter(([idx]) => palette[+idx])
+  if (roleEntries.length > 0 && (tab === 'css' || tab === 'scss')) {
+    const vars = roleEntries.map(([idx, role]) => {
+      const hex = palette[+idx]
+      const prop = ROLE_PROP[role]
+      return tab === 'css' ? `  --color-${prop}: ${hex};` : `$color-${prop}: ${hex};`
+    })
+    if (tab === 'css') code = code.replace('\n}', '\n  /* roles */\n' + vars.join('\n') + '\n}')
+    else code = code + '\n/* roles */\n' + vars.join('\n')
+  }
+  return code
+}
 
 function renderCodeHTML(code, tab) {
   let html = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -316,18 +379,25 @@ function ShieldIcon() {
 }
 
 // ── UI Preview mockup ────────────────────────────────────────────────────────
-function UIPreview({ palette }) {
+function UIPreview({ palette, roles = {}, uiBg = 'light' }) {
   if (palette.length < 2) return (
     <div className="uip-empty">Load an image to see a preview</div>
   )
-  const nav   = palette[1] || palette[0]
-  const cta   = palette[3] || palette[0]
-  const card1 = palette[0]
-  const card2 = palette[2] || palette[1]
+  const byRole = (role, fallback) => {
+    const entry = Object.entries(roles).find(([, r]) => r === role)
+    return entry ? (palette[+entry[0]] ?? fallback) : fallback
+  }
+  const nav   = byRole('bg',        palette[1] || palette[0])
+  const cta   = byRole('primary',   palette[3] || palette[0])
+  const card1 = byRole('secondary', palette[0])
+  const card2 = byRole('accent',    palette[2] || palette[1])
   const navFg = readableText(nav)
   const ctaFg = readableText(cta)
+  const cardBg = uiBg === 'dark' ? '#1A1A1C' : '#F5F5F3'
+  const cardInner = uiBg === 'dark' ? '#2A2A2E' : '#fff'
+  const cardLbl   = uiBg === 'dark' ? '#888' : '#555'
   return (
-    <div className="uip">
+    <div className="uip" style={{ background: cardBg }}>
       <div className="uip-nav" style={{ background: nav }}>
         <span className="uip-dot" style={{ background: cta }} />
         <span className="uip-brand" style={{ color: navFg }}>Brand</span>
@@ -337,14 +407,14 @@ function UIPreview({ palette }) {
         <div className="uip-heading" style={{ color: navFg }}>Hello World</div>
         <div className="uip-sub" style={{ color: navFg, opacity: 0.6 }}>Your palette on a real UI</div>
       </div>
-      <div className="uip-cards">
-        <div className="uip-card">
+      <div className="uip-cards" style={{ background: cardBg }}>
+        <div className="uip-card" style={{ background: cardInner }}>
           <span className="uip-card-dot" style={{ background: card1 }} />
-          <span className="uip-card-lbl">Card</span>
+          <span className="uip-card-lbl" style={{ color: cardLbl }}>Card</span>
         </div>
-        <div className="uip-card">
+        <div className="uip-card" style={{ background: cardInner }}>
           <span className="uip-card-dot" style={{ background: card2 }} />
-          <span className="uip-card-lbl">Card</span>
+          <span className="uip-card-lbl" style={{ color: cardLbl }}>Card</span>
         </div>
       </div>
     </div>
@@ -378,6 +448,13 @@ export default function App() {
   const [scaleExportTab, setScaleExportTab] = useState('tw4')
   const [currentView, setCurrentView] = useState('extract')
 
+  // ── Sprint 2.3 state ─────────────────────────────────────────────────────
+  const [redoHistory, setRedoHistory]       = useState([])
+  const [uiBg, setUiBg]                     = useState('light')
+  const [roles, setRoles]                   = useState({})
+  const [customTemplate, setCustomTemplate] = useState('{name}: {hex};')
+  const [scalesViewMode, setScalesViewMode] = useState('code') // 'visual'|'code'
+
   // ── Panel resize state ───────────────────────────────────────────────────
   const [panelWidths, setPanelWidthsState] = useState({ left: 380, right: 400 })
   const panelWidthsRef = useRef({ left: 380, right: 400 })
@@ -409,6 +486,7 @@ export default function App() {
       ...h.slice(-9),
       { palette: [...p], locks: [...l], colorCount: c, at: Date.now() },
     ])
+    setRedoHistory([])
   }, [])
 
   const restoreFromHistory = (entry) => {
@@ -422,11 +500,23 @@ export default function App() {
   const undo = () => {
     if (!history.length) return
     const prev = history[history.length - 1]
+    setRedoHistory(r => [...r.slice(-9), { palette: [...palette], locks: [...locks], colorCount, at: Date.now() }])
     setPalette(prev.palette)
     setLocks(new Set(prev.locks))
     setColorCount(prev.colorCount)
     setOpenSlider(null)
     setHistory(h => h.slice(0, -1))
+  }
+
+  const redo = () => {
+    if (!redoHistory.length) return
+    const next = redoHistory[redoHistory.length - 1]
+    setHistory(h => [...h.slice(-9), { palette: [...palette], locks: [...locks], colorCount, at: Date.now() }])
+    setPalette(next.palette)
+    setLocks(new Set(next.locks))
+    setColorCount(next.colorCount)
+    setOpenSlider(null)
+    setRedoHistory(r => r.slice(0, -1))
   }
 
   // ── Panel divider drag ────────────────────────────────────────────────────
@@ -508,10 +598,13 @@ export default function App() {
   const onImageLoad = async () => {
     const count = colorCountRef.current
     const colors = await getPalette(imgRef.current, { colorCount: count })
-    setPalette(colors.map(c => c.hex()))
+    const pal = colors.map(c => c.hex())
+    setPalette(pal)
+    setRoles(autoAssignRoles(pal))
     setLocks(new Set())
     setOpenSlider(null)
     setHistory([])
+    setRedoHistory([])
     setUrlError(null)
     setSamplingMode('global')
     setRegionPos({ x: 0.5, y: 0.5 })
@@ -662,11 +755,51 @@ export default function App() {
       const names = palette.map(hex => getColorName(hex))
       text = SCALE_EXPORT_FORMATS[scaleExportTab](palette, scalesData, names)
     } else {
-      text = EXPORT_FORMATS[exportTab](palette)
+      text = buildExportCode(exportTab, palette, roles, customTemplate)
     }
     navigator.clipboard.writeText(text)
     setCopied('export')
     setTimeout(() => setCopied(null), 1000)
+  }
+
+  const downloadPNG = () => {
+    if (!palette.length) return
+    const SW = 120, SH = 90, PAD = 8, LABEL_H = 14
+    const canvas = document.createElement('canvas')
+    canvas.width  = palette.length * SW
+    canvas.height = SH + LABEL_H + PAD * 2
+    const ctx = canvas.getContext('2d')
+    ctx.fillStyle = '#0A0A0B'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    palette.forEach((hex, i) => {
+      const x = i * SW + PAD / 2
+      ctx.fillStyle = hex
+      ctx.beginPath()
+      ctx.roundRect?.(x, PAD, SW - PAD, SH, 6)
+      ctx.fill()
+      ctx.fillStyle = readableText(hex)
+      ctx.font = '10px monospace'
+      ctx.textAlign = 'center'
+      ctx.fillText(hex, x + (SW - PAD) / 2, PAD + SH - PAD)
+    })
+    const a = document.createElement('a')
+    a.download = `palette-${Date.now()}.png`
+    a.href = canvas.toDataURL()
+    a.click()
+  }
+
+  const downloadTXT = () => {
+    if (!palette.length) return
+    const lines = palette.map(hex => {
+      const name = getColorName(hex)
+      const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16)
+      return `${name}: ${hex} (RGB: ${r}, ${g}, ${b})`
+    })
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
+    const a = document.createElement('a')
+    a.download = `palette-${Date.now()}.txt`
+    a.href = URL.createObjectURL(blob)
+    a.click()
   }
 
   // ── HSL gradient tracks ──────────────────────────────────────────────────
@@ -699,8 +832,12 @@ export default function App() {
     : {}
 
   // ── Export code ──────────────────────────────────────────────────────────
-  const exportCode = palette.length > 0 && paletteMode !== 'scales' ? EXPORT_FORMATS[exportTab](palette) : ''
-  const exportCodeHTML = exportCode ? renderCodeHTML(exportCode, exportTab) : ''
+  const exportCode = palette.length > 0 && paletteMode !== 'scales'
+    ? buildExportCode(exportTab, palette, roles, customTemplate)
+    : ''
+  const exportCodeHTML = exportCode && exportTab !== 'custom'
+    ? renderCodeHTML(exportCode, exportTab)
+    : exportCode.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
 
   const scaleExportCodeHTML = (() => {
     if (paletteMode !== 'scales' || palette.length === 0) return ''
@@ -873,13 +1010,12 @@ export default function App() {
             </button>
           )}
 
-          {/* Controls: undo + stepper */}
+          {/* Controls: undo + redo + stepper */}
           <div className="image-controls">
-            <button
-              className="ctrl-btn"
-              onClick={undo}
-              disabled={history.length === 0}
-            >← undo</button>
+            <div className="ctrl-undo-redo">
+              <button className="ctrl-btn" onClick={undo} disabled={history.length === 0}>←</button>
+              <button className="ctrl-btn" onClick={redo} disabled={redoHistory.length === 0}>→</button>
+            </div>
             <div className="stepper">
               <button className="stepper-btn" onClick={() => handleCountChange(-1)} disabled={!canDecrement}>−</button>
               <span className="stepper-count">{colorCount}</span>
@@ -949,13 +1085,38 @@ export default function App() {
                 >{m}</button>
               ))}
             </div>
-            <button
-              className={`export-btn ${copied === 'export' ? 'export-btn--copied' : ''}`}
-              onClick={handleExport}
-              disabled={!palette.length}
-            >
-              {copied === 'export' ? '✓ copied' : `export ↓`}
-            </button>
+            <div className="toolbar-right">
+              {/* Dark/Light toggle */}
+              <button
+                className={`toolbar-icon-btn ${uiBg === 'dark' ? 'toolbar-icon-btn--active' : ''}`}
+                onClick={() => setUiBg(b => b === 'light' ? 'dark' : 'light')}
+                title={uiBg === 'light' ? 'Switch to dark preview' : 'Switch to light preview'}
+              >
+                {uiBg === 'light' ? (
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/>
+                  </svg>
+                ) : (
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/>
+                  </svg>
+                )}
+              </button>
+              {/* Download PNG / TXT */}
+              {palette.length > 0 && (
+                <div className="download-group">
+                  <button className="toolbar-icon-btn" onClick={downloadPNG} title="Download palette as PNG">PNG</button>
+                  <button className="toolbar-icon-btn" onClick={downloadTXT} title="Download palette as TXT">TXT</button>
+                </div>
+              )}
+              <button
+                className={`export-btn ${copied === 'export' ? 'export-btn--copied' : ''}`}
+                onClick={handleExport}
+                disabled={!palette.length}
+              >
+                {copied === 'export' ? '✓ copied' : `export ↓`}
+              </button>
+            </div>
           </div>
 
           {/* Swatch list — normal / a11y modes */}
@@ -981,6 +1142,25 @@ export default function App() {
                         <span className="swatch-hex">{hex}</span>
                         <span className="swatch-name">{name}</span>
                       </div>
+
+                      {/* Role pill */}
+                      <button
+                        className={`role-pill ${roles[i] ? 'role-pill--active' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setRoles(prev => {
+                            const cur = prev[i] ?? null
+                            const nextIdx = (ROLE_ORDER.indexOf(cur) + 1) % ROLE_ORDER.length
+                            const next = ROLE_ORDER[nextIdx]
+                            const r = { ...prev }
+                            if (next === null) delete r[i]; else r[i] = next
+                            return r
+                          })
+                        }}
+                        title="Cycle semantic role"
+                      >
+                        {roles[i] ? ROLE_LABELS[roles[i]] : '·'}
+                      </button>
 
                       {/* A11y badge in a11y mode */}
                       {paletteMode === 'a11y' && (
@@ -1095,7 +1275,7 @@ export default function App() {
           {/* Preview mode */}
           {paletteMode === 'preview' && (
             <div className="preview-mode">
-              <UIPreview palette={palette} />
+              <UIPreview palette={palette} roles={roles} uiBg={uiBg} />
             </div>
           )}
 
@@ -1109,22 +1289,115 @@ export default function App() {
           {/* Export code block */}
           {palette.length > 0 && (
             <div className="export-section">
-              <div className="export-tabs">
-                {(paletteMode === 'scales' ? SCALE_EXPORT_TABS : EXPORT_TABS).map(tab => (
-                  <button
-                    key={tab}
-                    className={`export-tab ${(paletteMode === 'scales' ? scaleExportTab : exportTab) === tab ? 'export-tab--active' : ''}`}
-                    onClick={() => paletteMode === 'scales' ? setScaleExportTab(tab) : setExportTab(tab)}
-                  >{tab}</button>
-                ))}
-                {paletteMode === 'scales' && (
+              {/* Scales: visual/code toggle row */}
+              {paletteMode === 'scales' && (
+                <div className="scales-view-toggle">
+                  {['code', 'visual'].map(m => (
+                    <button
+                      key={m}
+                      className={`scales-view-btn ${scalesViewMode === m ? 'scales-view-btn--active' : ''}`}
+                      onClick={() => setScalesViewMode(m)}
+                    >{m}</button>
+                  ))}
                   <span className="export-scales-label">{palette.length} colors · 11 steps each</span>
-                )}
-              </div>
-              <pre
-                className="code-block"
-                dangerouslySetInnerHTML={{ __html: paletteMode === 'scales' ? scaleExportCodeHTML : exportCodeHTML }}
-              />
+                </div>
+              )}
+
+              {/* Visual shades grid */}
+              {paletteMode === 'scales' && scalesViewMode === 'visual' && (
+                <div className="scales-visual">
+                  {palette.map((hex, i) => {
+                    const scale = generateScale(hex)
+                    const name  = getColorName(hex)
+                    return (
+                      <div key={i} className="scales-visual-row">
+                        <div className="scales-visual-label">{name}</div>
+                        <div className="scales-visual-swatches">
+                          {SHADE_STEPS.map(step => {
+                            const { hex: sHex } = scale[step]
+                            const lbl = readableText(sHex)
+                            return (
+                              <div key={step} className="scales-visual-swatch" style={{ background: sHex }}>
+                                <span className="svs-step" style={{ color: lbl }}>{step}</span>
+                                <span className="svs-hex"  style={{ color: lbl }}>{sHex}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                  <button
+                    className={`scales-visual-copy ${copied === 'export' ? 'scales-visual-copy--copied' : ''}`}
+                    onClick={handleExport}
+                  >{copied === 'export' ? '✓ copied' : 'copy code'}</button>
+                </div>
+              )}
+
+              {/* Code tab bar + pre (scales) */}
+              {paletteMode === 'scales' && scalesViewMode === 'code' && (<>
+                <div className="export-tabs">
+                  {SCALE_EXPORT_TABS.map(tab => (
+                    <button
+                      key={tab}
+                      className={`export-tab ${scaleExportTab === tab ? 'export-tab--active' : ''}`}
+                      onClick={() => setScaleExportTab(tab)}
+                    >{tab}</button>
+                  ))}
+                </div>
+                <pre className="code-block" dangerouslySetInnerHTML={{ __html: scaleExportCodeHTML }} />
+              </>)}
+
+              {/* Non-scales: tab bar + output (with custom template UI) */}
+              {paletteMode !== 'scales' && (
+                <>
+                  <div className="export-tabs">
+                    {EXPORT_TABS.map(tab => (
+                      <button
+                        key={tab}
+                        className={`export-tab ${exportTab === tab ? 'export-tab--active' : ''}`}
+                        onClick={() => setExportTab(tab)}
+                      >{tab}</button>
+                    ))}
+                  </div>
+
+                  {/* Custom template editor */}
+                  {exportTab === 'custom' ? (
+                    <div className="custom-template-section">
+                      <div className="custom-template-presets">
+                        {Object.entries(CUSTOM_PRESET_VALUES).map(([label, tpl]) => (
+                          <button
+                            key={label}
+                            className={`custom-preset-btn ${customTemplate === tpl ? 'custom-preset-btn--active' : ''}`}
+                            onClick={() => setCustomTemplate(tpl)}
+                          >{label}</button>
+                        ))}
+                      </div>
+                      <div className="custom-vars-hint">
+                        {['{name}', '{hex}', '{rgb}', '{hsl}', '{oklch}', '{role}', '{index}'].map(v => (
+                          <span key={v} className="custom-var-chip">{v}</span>
+                        ))}
+                      </div>
+                      <textarea
+                        className="custom-template-input"
+                        value={customTemplate}
+                        onChange={e => setCustomTemplate(e.target.value)}
+                        rows={2}
+                        spellCheck={false}
+                      />
+                      <pre
+                        className="code-block"
+                        dangerouslySetInnerHTML={{ __html: exportCodeHTML }}
+                      />
+                    </div>
+                  ) : (
+                    <pre
+                      className="code-block"
+                      dangerouslySetInnerHTML={{ __html: exportCodeHTML }}
+                    />
+                  )}
+                </>
+              )}
             </div>
           )}
 
@@ -1238,7 +1511,7 @@ export default function App() {
           <div className="panel-header" style={{ marginTop: '1rem' }}>
             <span className="panel-label">UI PREVIEW</span>
           </div>
-          <UIPreview palette={palette} />
+          <UIPreview palette={palette} roles={roles} uiBg={uiBg} />
 
         </aside>
       </div>
