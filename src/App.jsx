@@ -401,17 +401,22 @@ function LandingPreview({ palette, roles = {}, uiBg = 'light' }) {
   const pageText  = uiBg === 'dark' ? bgColor  : textCol
   const primaryFg = readableText(primary)
 
+  // Darkest and lightest raw colors for footer
+  const sortedByLum = [...palette].sort((a, b) => getLuminance(a) - getLuminance(b))
+  const darkest  = sortedByLum[0]
+  const lightest = sortedByLum[sortedByLum.length - 1]
+
   return (
     <div className="lp" style={{ background: pageBg }}>
       {/* Navbar */}
-      <nav className="lp-nav" style={{ borderBottomColor: ha(secondary, 0.22) }}>
+      <nav className="lp-nav" style={{ borderBottom: `0.5px solid ${ha(secondary, 0.35)}` }}>
         <div className="lp-nav-logo">
           <span className="lp-logo-dot" style={{ background: primary }} />
           <span className="lp-logo-text" style={{ color: pageText }}>Brand</span>
         </div>
         <div className="lp-nav-links">
           {['Features', 'Pricing', 'Docs'].map(l => (
-            <span key={l} className="lp-nav-link" style={{ color: ha(pageText, 0.55) }}>{l}</span>
+            <span key={l} className="lp-nav-link" style={{ color: ha(pageText, 0.52) }}>{l}</span>
           ))}
         </div>
         <button className="lp-nav-cta" style={{ background: primary, color: primaryFg }}>
@@ -420,44 +425,47 @@ function LandingPreview({ palette, roles = {}, uiBg = 'light' }) {
       </nav>
 
       {/* Hero */}
-      <section className="lp-hero" style={{ background: ha(secondary, 0.08) }}>
+      <section className="lp-hero" style={{ background: pageBg }}>
         <h1 className="lp-heading" style={{ color: pageText }}>
           Build something beautiful
         </h1>
-        <p className="lp-subtext" style={{ color: ha(pageText, 0.58) }}>
+        <p className="lp-subtext" style={{ color: ha(pageText, 0.65) }}>
           Your palette applied to a real interface. Every color, in context.
         </p>
         <div className="lp-hero-btns">
           <button className="lp-btn-primary" style={{ background: primary, color: primaryFg }}>
             Get Started Free
           </button>
-          <button className="lp-btn-ghost" style={{ border: `1.5px solid ${ha(secondary, 0.6)}`, color: secondary }}>
+          <button className="lp-btn-ghost" style={{ border: `1.5px solid ${primary}`, color: primary }}>
             See how it works
           </button>
         </div>
       </section>
 
       {/* Feature cards */}
-      <section className="lp-features">
+      <section className="lp-features" style={{ background: ha(secondary, 0.08) }}>
         {[
           { dot: primary,   title: 'Smart Extraction', desc: 'Pull the best colors from any image automatically.' },
           { dot: accent,    title: 'Accessibility',     desc: 'WCAG contrast checks built right in.' },
           { dot: secondary, title: 'Export Ready',      desc: 'CSS, Tailwind, JSON, SCSS — one click.' },
         ].map(({ dot, title, desc }) => (
           <div key={title} className="lp-card"
-            style={{ background: ha(secondary, 0.07), border: `1px solid ${ha(secondary, 0.2)}` }}>
-            <span className="lp-card-dot" style={{ background: dot }} />
+            style={{ background: pageBg, border: `1px solid ${ha(secondary, 0.30)}` }}>
+            <span className="lp-card-icon" style={{ background: dot }} />
             <span className="lp-card-title" style={{ color: pageText }}>{title}</span>
-            <span className="lp-card-desc" style={{ color: ha(pageText, 0.52) }}>{desc}</span>
+            <span className="lp-card-desc" style={{ color: ha(pageText, 0.55) }}>{desc}</span>
           </div>
         ))}
       </section>
 
       {/* Footer */}
-      <footer className="lp-footer" style={{ borderTopColor: ha(secondary, 0.2) }}>
+      <footer className="lp-footer" style={{ background: darkest }}>
         <span className="lp-footer-dot" style={{ background: primary }} />
-        <span className="lp-footer-text" style={{ color: ha(pageText, 0.42) }}>Made with PaletteSnap</span>
+        <span className="lp-footer-text" style={{ color: ha(lightest, 0.72) }}>Made with PaletteSnap</span>
       </footer>
+
+      {/* Scroll hint */}
+      <div className="lp-scroll-hint" style={{ color: ha(pageText, 0.30) }}>scroll to see more ↓</div>
     </div>
   )
 }
