@@ -133,6 +133,102 @@ function autoFixContrast(hex, bgHex, targetRatio = 4.5) {
   return (lightFix || darkFix)?.color ?? hex
 }
 
+// ── OKLCH conversion (Björn Ottosson's exact OKLab matrices) ─────────────────
+function linearizeC(c) {
+  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+}
+function delinearizeC(c) {
+  return c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055
+}
+function hexToOklch(hex) {
+  const r = linearizeC(parseInt(hex.slice(1,3),16)/255)
+  const g = linearizeC(parseInt(hex.slice(3,5),16)/255)
+  const b = linearizeC(parseInt(hex.slice(5,7),16)/255)
+  // Linear sRGB → LMS (Ottosson M1)
+  const lms_l = 0.4122214708*r + 0.5363325363*g + 0.0514459929*b
+  const lms_m = 0.2119034982*r + 0.6806995451*g + 0.1073969566*b
+  const lms_s = 0.0883024619*r + 0.2817188376*g + 0.6299787005*b
+  const l_ = Math.cbrt(lms_l), m_ = Math.cbrt(lms_m), s_ = Math.cbrt(lms_s)
+  // LMS → OKLab (Ottosson M2)
+  const L  =  0.2104542553*l_ + 0.7936177850*m_ - 0.0040720468*s_
+  const a  =  1.9779984951*l_ - 2.4285922050*m_ + 0.4505937099*s_
+  const bv =  0.0259040371*l_ + 0.4072354613*m_ - 0.4321353280*s_
+  const C  = Math.sqrt(a*a + bv*bv)
+  let H    = Math.atan2(bv, a) * 180 / Math.PI
+  if (H < 0) H += 360
+  return { L, C, H }
+}
+function oklchToHex(L, C, H) {
+  const hRad = H * Math.PI / 180
+  const a = C * Math.cos(hRad), b = C * Math.sin(hRad)
+  // OKLab → LMS_ (inverse M2)
+  const l_ = L + 0.3963377774*a + 0.2158037573*b
+  const m_ = L - 0.1055613458*a - 0.0638541728*b
+  const s_ = L - 0.0894841775*a - 1.2914855480*b
+  const l = l_*l_*l_, m = m_*m_*m_, s = s_*s_*s_
+  // LMS → linear sRGB (inverse M1)
+  const r  = delinearizeC(Math.max(0,Math.min(1,  4.0767416621*l - 3.3077115913*m + 0.2309699292*s)))
+  const g  = delinearizeC(Math.max(0,Math.min(1, -1.2684380046*l + 2.6097574011*m - 0.3413193965*s)))
+  const bv = delinearizeC(Math.max(0,Math.min(1, -0.0041960863*l - 0.7034186147*m + 1.7076147010*s)))
+  return `#${[r,g,bv].map(c => Math.round(c*255).toString(16).padStart(2,'0')).join('')}`
+}
+function oklchToCss(L, C, H) {
+  return `oklch(${L.toFixed(4)} ${C.toFixed(4)} ${H.toFixed(1)})`
+}
+
+// ── Shade scale generation ────────────────────────────────────────────────────
+const SHADE_STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]
+function lerpVal(a, b, t) { return a + (b - a) * t }
+function stepToT(step) {
+  // 50→0, 100→0.1 … 500→0.5 … 900→0.9, 950→0.95
+  return step === 50 ? 0 : step === 950 ? 0.95 : step / 1000
+}
+function generateScale(hex) {
+  const { L: L500, C: C500, H } = hexToOklch(hex)
+  const L_light = 0.98, C_light = Math.min(0.025, C500 * 0.15)
+  const L_dark  = 0.15, C_dark  = C500 * 0.55
+  const scale = {}
+  for (const step of SHADE_STEPS) {
+    const t = stepToT(step)
+    let L, C
+    if (t <= 0.5) {
+      const u = t / 0.5
+      L = lerpVal(L_light, L500, u); C = lerpVal(C_light, C500, u)
+    } else {
+      const u = (t - 0.5) / 0.45
+      L = lerpVal(L500, L_dark, u); C = lerpVal(C500, C_dark, u)
+    }
+    scale[step] = { hex: oklchToHex(L, C, H), oklch: oklchToCss(L, C, H) }
+  }
+  return scale
+}
+
+function toKebab(name) { return name.toLowerCase().replace(/\s+/g, '-') }
+
+const SCALE_EXPORT_TABS = ['tw4', 'tw3', 'css', 'json']
+const SCALE_EXPORT_FORMATS = {
+  tw4: (palette, scales, names) =>
+    `@theme {\n${palette.map((_, i) =>
+      SHADE_STEPS.map(step => `  --color-${toKebab(names[i])}-${step}: ${scales[i][step].oklch};`).join('\n')
+    ).join('\n')}\n}`,
+  tw3: (palette, scales, names) => {
+    const obj = Object.fromEntries(palette.map((_, i) => [
+      toKebab(names[i]),
+      Object.fromEntries(SHADE_STEPS.map(step => [step, scales[i][step].hex]))
+    ]))
+    return `colors: ${JSON.stringify(obj, null, 2)}`
+  },
+  css: (palette, scales, names) =>
+    `:root {\n${palette.map((_, i) =>
+      SHADE_STEPS.map(step => `  --color-${toKebab(names[i])}-${step}: ${scales[i][step].hex};`).join('\n')
+    ).join('\n')}\n}`,
+  json: (palette, scales, names) => JSON.stringify(
+    Object.fromEntries(palette.map((_, i) => [
+      toKebab(names[i]),
+      Object.fromEntries(SHADE_STEPS.map(step => [step, { hex: scales[i][step].hex, oklch: scales[i][step].oklch }]))
+    ])), null, 2),
+}
+
 // ── Export formats ───────────────────────────────────────────────────────────
 const EXPORT_FORMATS = {
   css:      (p) => `:root {\n${p.map((h, i) => `  --color-${i + 1}: ${h};`).join('\n')}\n}`,
@@ -255,12 +351,13 @@ export default function App() {
   const [copied, setCopied]         = useState(null)
   const [visionMode, setVisionMode] = useState('normal')
   const [paletteMode, setPaletteMode] = useState('normal')
-  const [exportTab, setExportTab]   = useState('css')
+  const [exportTab, setExportTab]       = useState('css')
+  const [scaleExportTab, setScaleExportTab] = useState('tw4')
   const [currentView, setCurrentView] = useState('extract')
 
   // ── Panel resize state ───────────────────────────────────────────────────
-  const [panelWidths, setPanelWidthsState] = useState({ left: 260, right: 280 })
-  const panelWidthsRef = useRef({ left: 260, right: 280 })
+  const [panelWidths, setPanelWidthsState] = useState({ left: 380, right: 400 })
+  const panelWidthsRef = useRef({ left: 380, right: 400 })
   const dividerDragRef = useRef(null)
 
   const setPanelWidths = (v) => {
@@ -536,7 +633,15 @@ export default function App() {
   }
 
   const handleExport = () => {
-    navigator.clipboard.writeText(EXPORT_FORMATS[exportTab](palette))
+    let text
+    if (paletteMode === 'scales') {
+      const scalesData = palette.map(hex => generateScale(hex))
+      const names = palette.map(hex => getColorName(hex))
+      text = SCALE_EXPORT_FORMATS[scaleExportTab](palette, scalesData, names)
+    } else {
+      text = EXPORT_FORMATS[exportTab](palette)
+    }
+    navigator.clipboard.writeText(text)
     setCopied('export')
     setTimeout(() => setCopied(null), 1000)
   }
@@ -571,8 +676,22 @@ export default function App() {
     : {}
 
   // ── Export code ──────────────────────────────────────────────────────────
-  const exportCode = palette.length > 0 ? EXPORT_FORMATS[exportTab](palette) : ''
-  const exportCodeHTML = palette.length > 0 ? renderCodeHTML(exportCode, exportTab) : ''
+  const exportCode = palette.length > 0 && paletteMode !== 'scales' ? EXPORT_FORMATS[exportTab](palette) : ''
+  const exportCodeHTML = exportCode ? renderCodeHTML(exportCode, exportTab) : ''
+
+  const scaleExportCodeHTML = (() => {
+    if (paletteMode !== 'scales' || palette.length === 0) return ''
+    const scalesData = palette.map(hex => generateScale(hex))
+    const names = palette.map(hex => getColorName(hex))
+    const code = SCALE_EXPORT_FORMATS[scaleExportTab](palette, scalesData, names)
+    let html = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    html = html.replace(/(#[0-9a-fA-F]{6})/g, '<span class="code-hex">$1</span>')
+    html = html.replace(/(oklch\([^)]+\))/g, '<span class="code-hex">$1</span>')
+    html = html.replace(/(--color-[\w-]+-\d+)/g, '<span class="code-prop">$1</span>')
+    if (scaleExportTab === 'tw4') html = html.replace(/(@theme)/g, '<span class="code-sel">$1</span>')
+    if (scaleExportTab === 'css') html = html.replace(/(:root)/g, '<span class="code-sel">$1</span>')
+    return html
+  })()
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -598,7 +717,7 @@ export default function App() {
       <header className="titlebar">
         <div className="titlebar-left">
           <span className="titlebar-dot" />
-          <span className="titlebar-name">PaletteSnap 1</span>
+          <span className="titlebar-name">PaletteSnap</span>
         </div>
         <div className="titlebar-center">
           <ShieldIcon />
@@ -799,7 +918,7 @@ export default function App() {
           {/* Toolbar */}
           <div className="palette-toolbar">
             <div className="palette-modes">
-              {['normal', 'a11y', 'preview'].map(m => (
+              {['normal', 'a11y', 'preview', 'scales'].map(m => (
                 <button
                   key={m}
                   className={`palette-mode-btn ${paletteMode === m ? 'palette-mode-btn--active' : ''}`}
@@ -817,7 +936,7 @@ export default function App() {
           </div>
 
           {/* Swatch list — normal / a11y modes */}
-          {paletteMode !== 'preview' && palette.length > 0 && (
+          {(paletteMode === 'normal' || paletteMode === 'a11y') && palette.length > 0 && (
             <div className="swatch-list">
               {palette.map((hex, i) => {
                 const name = getColorName(hex)
@@ -903,11 +1022,50 @@ export default function App() {
           )}
 
           {/* Color strip — sibling of swatch-list, outside the scrollable area */}
-          {paletteMode !== 'preview' && palette.length > 0 && (
+          {(paletteMode === 'normal' || paletteMode === 'a11y') && palette.length > 0 && (
             <div className="color-strip">
               {palette.map((hex, i) => (
                 <span key={i} style={{ flex: 1, background: hex, display: 'block' }} />
               ))}
+            </div>
+          )}
+
+          {/* Scales view */}
+          {paletteMode === 'scales' && palette.length > 0 && (
+            <div className="scales-view">
+              {palette.map((hex, i) => {
+                const scale = generateScale(hex)
+                const name  = getColorName(hex)
+                return (
+                  <div key={i} className="scale-row-wrap">
+                    <div className="scale-row-label">{name}</div>
+                    <div className="scale-steps">
+                      {SHADE_STEPS.map(step => {
+                        const { hex: sHex } = scale[step]
+                        const isAnchor  = step === 500
+                        const wContrast = getContrastRatio(sHex, '#ffffff')
+                        const bContrast = getContrastRatio(sHex, '#000000')
+                        const useWhite  = wContrast >= 4.5
+                        const useBlack  = !useWhite && bContrast >= 4.5
+                        const labelCol  = readableText(sHex)
+                        return (
+                          <div
+                            key={step}
+                            className={`scale-step${isAnchor ? ' scale-step--anchor' : ''}`}
+                            style={{ background: sHex }}
+                          >
+                            <span className="scale-step-num"  style={{ color: labelCol }}>{step}</span>
+                            <span className="scale-step-hex"  style={{ color: labelCol }}>{sHex}</span>
+                            {isAnchor  && <span className="scale-anchor-dot" style={{ background: labelCol }} />}
+                            {useWhite  && <span className="scale-text-dot scale-text-dot--white" />}
+                            {useBlack  && <span className="scale-text-dot scale-text-dot--black" />}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
 
@@ -929,17 +1087,17 @@ export default function App() {
           {palette.length > 0 && (
             <div className="export-section">
               <div className="export-tabs">
-                {EXPORT_TABS.map(tab => (
+                {(paletteMode === 'scales' ? SCALE_EXPORT_TABS : EXPORT_TABS).map(tab => (
                   <button
                     key={tab}
-                    className={`export-tab ${exportTab === tab ? 'export-tab--active' : ''}`}
-                    onClick={() => setExportTab(tab)}
+                    className={`export-tab ${(paletteMode === 'scales' ? scaleExportTab : exportTab) === tab ? 'export-tab--active' : ''}`}
+                    onClick={() => paletteMode === 'scales' ? setScaleExportTab(tab) : setExportTab(tab)}
                   >{tab}</button>
                 ))}
               </div>
               <pre
                 className="code-block"
-                dangerouslySetInnerHTML={{ __html: exportCodeHTML }}
+                dangerouslySetInnerHTML={{ __html: paletteMode === 'scales' ? scaleExportCodeHTML : exportCodeHTML }}
               />
             </div>
           )}
