@@ -20,7 +20,12 @@
       "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap status)",
       "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap log --oneline -5)",
       "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap diff src/App.jsx .claude/settings.local.json)",
-      "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap add src/App.jsx .claude/settings.local.json)"
+      "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap add src/App.jsx .claude/settings.local.json)",
+      "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap fetch)",
+      "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap log --oneline origin/main -5)",
+      "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap add src/App.jsx src/App.css)",
+      "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap add .claude/settings.local.json)",
+      "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap push)"
     ]
   }
 }
