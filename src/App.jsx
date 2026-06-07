@@ -378,7 +378,91 @@ function ShieldIcon() {
   )
 }
 
-// ── UI Preview mockup ────────────────────────────────────────────────────────
+// ── Landing page preview ──────────────────────────────────────────────────────
+// 8-digit hex: append alpha byte (00–ff) to a 6-char #rrggbb
+function ha(hex, alpha) {
+  return hex + Math.round(alpha * 255).toString(16).padStart(2, '0')
+}
+
+function LandingPreview({ palette, roles = {}, uiBg = 'light' }) {
+  if (!palette.length) return (
+    <div className="lp-empty">Load an image to see a preview</div>
+  )
+  const byRole = (role, fallbackIdx) => {
+    const entry = Object.entries(roles).find(([, r]) => r === role)
+    return entry ? (palette[+entry[0]] ?? palette[fallbackIdx ?? 0]) : palette[fallbackIdx ?? 0]
+  }
+  const bgColor   = byRole('bg',        palette.length - 1)
+  const textCol   = byRole('text',      0)
+  const primary   = byRole('primary',   Math.min(1, palette.length - 1))
+  const secondary = byRole('secondary', Math.min(2, palette.length - 1))
+  const accent    = byRole('accent',    Math.min(3, palette.length - 1))
+  const pageBg    = uiBg === 'dark' ? textCol  : bgColor
+  const pageText  = uiBg === 'dark' ? bgColor  : textCol
+  const primaryFg = readableText(primary)
+
+  return (
+    <div className="lp" style={{ background: pageBg }}>
+      {/* Navbar */}
+      <nav className="lp-nav" style={{ borderBottomColor: ha(secondary, 0.22) }}>
+        <div className="lp-nav-logo">
+          <span className="lp-logo-dot" style={{ background: primary }} />
+          <span className="lp-logo-text" style={{ color: pageText }}>Brand</span>
+        </div>
+        <div className="lp-nav-links">
+          {['Features', 'Pricing', 'Docs'].map(l => (
+            <span key={l} className="lp-nav-link" style={{ color: ha(pageText, 0.55) }}>{l}</span>
+          ))}
+        </div>
+        <button className="lp-nav-cta" style={{ background: primary, color: primaryFg }}>
+          Get Started
+        </button>
+      </nav>
+
+      {/* Hero */}
+      <section className="lp-hero" style={{ background: ha(secondary, 0.08) }}>
+        <h1 className="lp-heading" style={{ color: pageText }}>
+          Build something beautiful
+        </h1>
+        <p className="lp-subtext" style={{ color: ha(pageText, 0.58) }}>
+          Your palette applied to a real interface. Every color, in context.
+        </p>
+        <div className="lp-hero-btns">
+          <button className="lp-btn-primary" style={{ background: primary, color: primaryFg }}>
+            Get Started Free
+          </button>
+          <button className="lp-btn-ghost" style={{ border: `1.5px solid ${ha(secondary, 0.6)}`, color: secondary }}>
+            See how it works
+          </button>
+        </div>
+      </section>
+
+      {/* Feature cards */}
+      <section className="lp-features">
+        {[
+          { dot: primary,   title: 'Smart Extraction', desc: 'Pull the best colors from any image automatically.' },
+          { dot: accent,    title: 'Accessibility',     desc: 'WCAG contrast checks built right in.' },
+          { dot: secondary, title: 'Export Ready',      desc: 'CSS, Tailwind, JSON, SCSS — one click.' },
+        ].map(({ dot, title, desc }) => (
+          <div key={title} className="lp-card"
+            style={{ background: ha(secondary, 0.07), border: `1px solid ${ha(secondary, 0.2)}` }}>
+            <span className="lp-card-dot" style={{ background: dot }} />
+            <span className="lp-card-title" style={{ color: pageText }}>{title}</span>
+            <span className="lp-card-desc" style={{ color: ha(pageText, 0.52) }}>{desc}</span>
+          </div>
+        ))}
+      </section>
+
+      {/* Footer */}
+      <footer className="lp-footer" style={{ borderTopColor: ha(secondary, 0.2) }}>
+        <span className="lp-footer-dot" style={{ background: primary }} />
+        <span className="lp-footer-text" style={{ color: ha(pageText, 0.42) }}>Made with PaletteSnap</span>
+      </footer>
+    </div>
+  )
+}
+
+// ── UI Preview mockup (kept for reference, no longer rendered) ────────────────
 function UIPreview({ palette, roles = {}, uiBg = 'light' }) {
   if (palette.length < 2) return (
     <div className="uip-empty">Load an image to see a preview</div>
@@ -1274,10 +1358,10 @@ export default function App() {
             </div>
           )}
 
-          {/* Preview mode */}
+          {/* Preview mode — full landing page */}
           {paletteMode === 'preview' && (
             <div className="preview-mode">
-              <UIPreview palette={palette} roles={roles} uiBg={uiBg} />
+              <LandingPreview palette={palette} roles={roles} uiBg={uiBg} />
             </div>
           )}
 
@@ -1530,11 +1614,6 @@ export default function App() {
             ))}
           </div>
 
-          {/* UI Preview */}
-          <div className="panel-header" style={{ marginTop: '1rem' }}>
-            <span className="panel-label">UI PREVIEW</span>
-          </div>
-          <UIPreview palette={palette} roles={roles} uiBg={uiBg} />
 
         </aside>
       </div>
