@@ -1223,7 +1223,7 @@ export default function App() {
                 const isOpen = openSlider === i
                 const isLocked = locks.has(i)
                 return (
-                  <div key={i} className={`swatch-row ${isOpen ? 'swatch-row--open' : ''}`}>
+                  <div key={i} className={`swatch-row ${isOpen ? 'swatch-row--open' : ''}`} style={isOpen ? { flex: 'none' } : undefined}>
                     <div
                       className="swatch-row-main"
                       onClick={() => handleSwatchClick(i)}
@@ -1318,7 +1318,7 @@ export default function App() {
             </div>
           )}
 
-          {/* Color strip — sibling of swatch-list, outside the scrollable area */}
+          {/* Color strip */}
           {(paletteMode === 'normal' || paletteMode === 'a11y') && palette.length > 0 && (
             <div className="color-strip">
               {palette.map((hex, i) => (

@@ -548,21 +548,23 @@
 .export-btn:disabled { opacity: 0.25; cursor: default; }
 .export-btn--copied { background: #5BA65B; color: #fff; }
 
-/* ── Swatch list ─────────────────────────────────────────── */
+/* ── Swatch layout ───────────────────────────────────────── */
 /*
- * flex-grow: 0  → don't expand to fill panel; only as tall as content
- * flex-shrink: 0 → don't compress when panel is small
- * max-height    → if content exceeds this, scroll internally instead of
- *                 pushing export off-screen (260px = toolbar + strip + export min)
- * No flex: 1    → this is the root cause of the void: when the list fills the
- *                 full panel height, its empty interior is always visible.
- *                 Removing it lets the strip sit right below the last row.
+ * swatch-list fills all available vertical space in the panel (flex:1).
+ * Each swatch-row stretches to fill swatch-list evenly (flex:1, min 52px).
+ *
+ * swatch-list uses flex:1 so it fills all available space.
+ * Each .swatch-row uses flex:1 so rows stretch to fill swatch-list evenly.
+ * Open rows get flex:none via inline style so they take natural height,
+ * and the remaining closed rows divide the leftover space among themselves.
  */
+
+/* ── Swatch list ─────────────────────────────────────────── */
 .swatch-list {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 8px 0;
+  padding: 0;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -570,13 +572,17 @@
 }
 
 .swatch-row {
+  flex: 1;
+  min-height: 52px;
   border-bottom: 1px solid #1C1C22;
   width: 100%;
   box-sizing: border-box;
-  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .swatch-row-main {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -766,8 +772,7 @@
 }
 
 /* ── Color strip ─────────────────────────────────────────── */
-/* Moved OUTSIDE .swatch-list — it is now a sibling flex item in the
-   panel column, so it sits directly below the swatch list with no gap */
+/* Sibling flex item in the panel column, sits below swatch-list */
 .color-strip {
   display: flex;
   height: 8px;
