@@ -899,12 +899,15 @@ export default function App() {
                 )
               })}
 
-              {/* Color strip */}
-              <div className="color-strip">
-                {palette.map((hex, i) => (
-                  <span key={i} style={{ flex: 1, background: hex, display: 'block' }} />
-                ))}
-              </div>
+            </div>
+          )}
+
+          {/* Color strip — sibling of swatch-list, outside the scrollable area */}
+          {paletteMode !== 'preview' && palette.length > 0 && (
+            <div className="color-strip">
+              {palette.map((hex, i) => (
+                <span key={i} style={{ flex: 1, background: hex, display: 'block' }} />
+              ))}
             </div>
           )}
 

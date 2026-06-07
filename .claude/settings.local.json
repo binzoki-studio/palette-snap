@@ -14,7 +14,13 @@
       "Bash(pkill -f \"vite\")",
       "Bash(git remote *)",
       "Bash(git branch *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap add src/App.css)",
+      "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap commit -m ' *)",
+      "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap status)",
+      "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap log --oneline -5)",
+      "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap diff src/App.jsx .claude/settings.local.json)",
+      "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap add src/App.jsx .claude/settings.local.json)"
     ]
   }
 }
