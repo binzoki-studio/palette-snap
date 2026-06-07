@@ -1328,10 +1328,11 @@ export default function App() {
           {/* ── Extract view: preview only ── */}
           {currentView === 'extract' && (
             <div className="preview-full">
-              {/* Overlay controls — top-right */}
-              <div className="preview-overlay-controls">
+              {/* Preview toolbar */}
+              <div className="preview-toolbar">
+                <span className="panel-label">PREVIEW</span>
                 <button
-                  className={`overlay-btn ${uiBg === 'dark' ? 'overlay-btn--active' : ''}`}
+                  className={`preview-toolbar-btn ${uiBg === 'dark' ? 'preview-toolbar-btn--active' : ''}`}
                   onClick={() => setUiBg(b => b === 'light' ? 'dark' : 'light')}
                   title={uiBg === 'light' ? 'Switch to dark preview' : 'Switch to light preview'}
                 >
@@ -1344,11 +1345,6 @@ export default function App() {
                       <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/>
                     </svg>
                   )}
-                </button>
-                <button className="overlay-btn" title="Fullscreen (coming soon)">
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                    <path d="M1.5 1h4a.5.5 0 0 1 0 1H2v3.5a.5.5 0 0 1-1 0V1.5A.5.5 0 0 1 1.5 1zm9 0h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V2h-3.5a.5.5 0 0 1 0-1zM1 10.5a.5.5 0 0 1 .5-.5h.5v3.5H5.5a.5.5 0 0 1 0 1H1.5a.5.5 0 0 1-.5-.5v-4zm15 0v4a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1 0-1H14V10.5a.5.5 0 0 1 1 0z"/>
-                  </svg>
                 </button>
               </div>
               {/* Preview content with vision filter */}

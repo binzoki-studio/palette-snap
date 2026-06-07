@@ -1640,41 +1640,41 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  position: relative;
   overflow: hidden;
 }
+
+/* Thin toolbar above the preview */
+.preview-toolbar {
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  background: #0D0D0F;
+  border-bottom: 0.5px solid #1A1A1C;
+}
+
+.preview-toolbar-btn {
+  width: 26px;
+  height: 26px;
+  background: none;
+  border: 1px solid #2E2E34;
+  border-radius: 5px;
+  color: #62626C;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+.preview-toolbar-btn:hover { color: #9A9AA4; border-color: #3E3E46; }
+.preview-toolbar-btn--active { color: #E8E8E6; background: #2E2E34; border-color: #3E3E46; }
 
 .preview-scroll {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
 }
-
-/* Overlay controls — top-right corner */
-.preview-overlay-controls {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  display: flex;
-  gap: 4px;
-  z-index: 10;
-}
-
-.overlay-btn {
-  width: 28px;
-  height: 28px;
-  background: rgba(17, 17, 22, 0.82);
-  border: 1px solid #2E2E34;
-  border-radius: 6px;
-  color: #62626C;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
-  backdrop-filter: blur(4px);
-}
-.overlay-btn:hover { color: #9A9AA4; border-color: #3E3E46; }
-.overlay-btn--active { color: #E8E8E6; background: rgba(46,46,52,0.9); border-color: #3E3E46; }
 
 /* Center panel placeholder (no image) */
 .preview-placeholder {
