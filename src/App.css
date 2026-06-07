@@ -869,8 +869,15 @@
 .preview-mode {
   flex: 1;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
   padding: 24px;
+}
+
+.preview-mode .uip {
+  width: 100%;
+  max-width: 480px;
+  min-width: 400px;
 }
 
 /* ── Export section ──────────────────────────────────────── */
@@ -1013,10 +1020,10 @@
   line-height: 1.3;
 }
 .contrast-badge--pass {
-  background: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.28);
 }
 .contrast-badge--fail {
-  background: rgba(0,0,0,0.25);
+  background: rgba(0,0,0,0.35);
 }
 
 /* Auto-fix button */
@@ -1088,7 +1095,7 @@
   flex: 1;
   font-family: 'DM Sans', sans-serif;
   font-size: 9px;
-  color: rgba(255,255,255,0.7);
+  /* color set inline via readableText(nav) */
 }
 
 .uip-cta {
@@ -1097,7 +1104,7 @@
   font-weight: 500;
   padding: 3px 7px;
   border-radius: 4px;
-  color: #fff;
+  /* color set inline via readableText(cta) */
 }
 
 .uip-hero {
@@ -1108,15 +1115,15 @@
   font-family: 'DM Sans', sans-serif;
   font-size: 11px;
   font-weight: 500;
-  color: rgba(255,255,255,0.9);
   line-height: 1.3;
+  /* color set inline via readableText(nav) */
 }
 
 .uip-sub {
   font-family: 'DM Sans', sans-serif;
   font-size: 9px;
-  color: rgba(255,255,255,0.5);
   margin-top: 2px;
+  /* color + opacity set inline via readableText(nav) */
 }
 
 .uip-cards {

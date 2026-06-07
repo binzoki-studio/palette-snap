@@ -324,16 +324,18 @@ function UIPreview({ palette }) {
   const cta   = palette[3] || palette[0]
   const card1 = palette[0]
   const card2 = palette[2] || palette[1]
+  const navFg = readableText(nav)
+  const ctaFg = readableText(cta)
   return (
     <div className="uip">
       <div className="uip-nav" style={{ background: nav }}>
         <span className="uip-dot" style={{ background: cta }} />
-        <span className="uip-brand">Brand</span>
-        <span className="uip-cta" style={{ background: cta }}>CTA</span>
+        <span className="uip-brand" style={{ color: navFg }}>Brand</span>
+        <span className="uip-cta" style={{ background: cta, color: ctaFg }}>CTA</span>
       </div>
       <div className="uip-hero" style={{ background: nav }}>
-        <div className="uip-heading">Hello World</div>
-        <div className="uip-sub">Your palette on a real UI</div>
+        <div className="uip-heading" style={{ color: navFg }}>Hello World</div>
+        <div className="uip-sub" style={{ color: navFg, opacity: 0.6 }}>Your palette on a real UI</div>
       </div>
       <div className="uip-cards">
         <div className="uip-card">
