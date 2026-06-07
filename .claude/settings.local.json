@@ -11,7 +11,10 @@
       "Bash(git commit -m ' *)",
       "mcp__Claude_Preview__preview_start",
       "Bash(git commit -m 'sprint 2.2: three-panel UI redesign *)",
-      "Bash(pkill -f \"vite\")"
+      "Bash(pkill -f \"vite\")",
+      "Bash(git remote *)",
+      "Bash(git branch *)",
+      "Bash(git push *)"
     ]
   }
 }

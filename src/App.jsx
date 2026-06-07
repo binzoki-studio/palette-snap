@@ -95,6 +95,44 @@ function getColorName(hex) {
   return l < 50 ? 'Berry' : 'Blush'
 }
 
+// ── A11y helpers ─────────────────────────────────────────────────────────────
+const LIGHT_BG = '#FFFFFF'
+const DARK_BG  = '#0A0A0B'
+
+function badgeLevel(ratio) {
+  if (ratio >= 7)   return 'AAA'
+  if (ratio >= 4.5) return 'AA'
+  if (ratio >= 3)   return 'AA Lg'
+  return '✗'
+}
+
+function passesAA(ratio) { return ratio >= 4.5 }
+
+// Returns text color (#000 or #fff) that is most readable on `bgHex`
+function readableText(bgHex) {
+  return getLuminance(bgHex) > 0.179 ? '#000000' : '#ffffff'
+}
+
+// Nudge a color's lightness (minimum step) until it reaches `targetRatio` vs `bgHex`
+function autoFixContrast(hex, bgHex, targetRatio = 4.5) {
+  if (getContrastRatio(hex, bgHex) >= targetRatio) return hex
+  const { h, s, l: startL } = hexToHsl(hex)
+  let lightFix = null, darkFix = null
+  for (let delta = 1; delta <= 100; delta++) {
+    if (!lightFix) {
+      const c = hslToHex(h, s, Math.min(100, startL + delta))
+      if (getContrastRatio(c, bgHex) >= targetRatio) lightFix = { color: c, delta }
+    }
+    if (!darkFix) {
+      const c = hslToHex(h, s, Math.max(0, startL - delta))
+      if (getContrastRatio(c, bgHex) >= targetRatio) darkFix = { color: c, delta }
+    }
+    if (lightFix && darkFix) break
+  }
+  if (lightFix && darkFix) return lightFix.delta <= darkFix.delta ? lightFix.color : darkFix.color
+  return (lightFix || darkFix)?.color ?? hex
+}
+
 // ── Export formats ───────────────────────────────────────────────────────────
 const EXPORT_FORMATS = {
   css:      (p) => `:root {\n${p.map((h, i) => `  --color-${i + 1}: ${h};`).join('\n')}\n}`,
@@ -120,11 +158,12 @@ function renderCodeHTML(code, tab) {
 }
 
 // ── Vision filter matrices ───────────────────────────────────────────────────
+// IDs use `filter-*` prefix so they never clash with other element IDs
 const VISION_FILTERS = {
-  normal:       null,
-  protanopia:   '0.567 0.433 0 0 0  0.558 0.442 0 0 0  0 0.242 0.758 0 0  0 0 0 1 0',
-  deuteranopia: '0.625 0.375 0 0 0  0.7 0.3 0 0 0  0 0.3 0.7 0 0  0 0 0 1 0',
-  tritanopia:   '0.95 0.05 0 0 0  0 0.433 0.567 0 0  0 0.475 0.525 0 0  0 0 0 1 0',
+  normal:       { id: null,                  matrix: null },
+  protanopia:   { id: 'filter-protanopia',   matrix: '0.567,0.433,0,0,0, 0.558,0.442,0,0,0, 0,0.242,0.758,0,0, 0,0,0,1,0' },
+  deuteranopia: { id: 'filter-deuteranopia', matrix: '0.625,0.375,0,0,0, 0.7,0.3,0,0,0, 0,0.3,0.7,0,0, 0,0,0,1,0' },
+  tritanopia:   { id: 'filter-tritanopia',   matrix: '0.95,0.05,0,0,0, 0,0.433,0.567,0,0, 0,0.475,0.525,0,0, 0,0,0,1,0' },
 }
 
 // ── Icons ────────────────────────────────────────────────────────────────────
@@ -507,12 +546,28 @@ export default function App() {
   const satGrad   = sliderHsl ? `linear-gradient(to right,hsl(${sliderHsl.h},0%,${sliderHsl.l}%),hsl(${sliderHsl.h},100%,${sliderHsl.l}%))` : ''
   const lightGrad = sliderHsl ? `linear-gradient(to right,hsl(${sliderHsl.h},${sliderHsl.s}%,5%),hsl(${sliderHsl.h},${sliderHsl.s}%,50%),hsl(${sliderHsl.h},${sliderHsl.s}%,95%))` : ''
 
-  // ── Accessibility ────────────────────────────────────────────────────────
-  const passCount = palette.filter(h => getContrastRatio(h, '#ffffff') >= 4.5).length
+  // ── Auto-fix contrast ────────────────────────────────────────────────────
+  const handleAutoFix = (i, bgHex) => {
+    const fixed = autoFixContrast(palette[i], bgHex)
+    if (fixed !== palette[i]) {
+      pushToHistory(palette, locks, colorCount)
+      setPalette(p => p.map((h, idx) => idx === i ? fixed : h))
+    }
+  }
 
-  // ── Vision filter style ──────────────────────────────────────────────────
-  const visionFilterStyle = visionMode !== 'normal'
-    ? { filter: `url(#${visionMode})` }
+  // ── Accessibility score ──────────────────────────────────────────────────
+  // A color passes if it achieves AA (≥4.5:1) against either light or dark bg
+  const passCount = palette.filter(hex =>
+    getContrastRatio(hex, LIGHT_BG) >= 4.5 || getContrastRatio(hex, DARK_BG) >= 4.5
+  ).length
+  const scoreColor = palette.length === 0 ? C.muted
+    : passCount === palette.length ? C.pass          // all pass: green
+    : passCount >= Math.ceil(palette.length / 2) ? '#C49A2A'  // some fail: amber
+    : C.fail                                         // most fail: red
+
+  // ── Vision filter style — applied to whole center panel ──────────────────
+  const activePanelFilter = VISION_FILTERS[visionMode]?.id
+    ? { filter: `url(#${VISION_FILTERS[visionMode].id})` }
     : {}
 
   // ── Export code ──────────────────────────────────────────────────────────
@@ -526,11 +581,13 @@ export default function App() {
       {/* Hidden SVG color-vision filters */}
       <svg className="vision-defs" aria-hidden="true">
         <defs>
-          {Object.entries(VISION_FILTERS).filter(([k]) => k !== 'normal').map(([id, vals]) => (
-            <filter key={id} id={id}>
-              <feColorMatrix type="matrix" values={vals} />
-            </filter>
-          ))}
+          {Object.entries(VISION_FILTERS)
+            .filter(([, v]) => v.id)
+            .map(([, { id, matrix }]) => (
+              <filter key={id} id={id} colorInterpolationFilters="sRGB">
+                <feColorMatrix type="matrix" values={matrix} />
+              </filter>
+            ))}
         </defs>
       </svg>
 
@@ -699,7 +756,7 @@ export default function App() {
         </div>
 
         {/* ═══════════ PANEL 2: PALETTE ═══════════ */}
-        <main className="panel panel--palette" style={{ flex: 1, minWidth: 300 }}>
+        <main className="panel panel--palette" style={{ flex: 1, minWidth: 300, ...activePanelFilter }}>
 
           {/* ── History view ── */}
           {currentView === 'history' && (
@@ -761,7 +818,7 @@ export default function App() {
 
           {/* Swatch list — normal / a11y modes */}
           {paletteMode !== 'preview' && palette.length > 0 && (
-            <div className="swatch-list" style={visionFilterStyle}>
+            <div className="swatch-list">
               {palette.map((hex, i) => {
                 const name = getColorName(hex)
                 const contrast = getContrastRatio(hex, '#ffffff')
@@ -899,11 +956,11 @@ export default function App() {
         {/* ═══════════ PANEL 3: INTELLIGENCE ═══════════ */}
         <aside className="panel panel--intel" style={{ width: panelWidths.right }}>
 
-          {/* Accessibility */}
+          {/* Accessibility header */}
           <div className="panel-header">
             <span className="panel-label">ACCESSIBILITY</span>
             {palette.length > 0 && (
-              <span className="panel-badge" style={{ color: C.pass }}>
+              <span className="panel-badge" style={{ color: scoreColor }}>
                 {passCount}/{palette.length} pass
               </span>
             )}
@@ -911,17 +968,57 @@ export default function App() {
 
           {palette.length > 0 ? (
             <>
-              <div className="intel-section-label">CONTRAST · WHITE BG</div>
-              <div className="contrast-grid">
+              {/* Column headers */}
+              <div className="contrast-matrix-header">
+                <span className="cm-col-label">on light</span>
+                <span className="cm-col-label">on dark</span>
+              </div>
+
+              {/* Contrast matrix rows — one per extracted color */}
+              <div className="contrast-matrix">
                 {palette.map((hex, i) => {
-                  const ratio = getContrastRatio(hex, '#ffffff')
-                  const level = ratio >= 7 ? 'AAA' : ratio >= 4.5 ? 'AA' : null
+                  const ratioLight = getContrastRatio(hex, LIGHT_BG)
+                  const ratioDark  = getContrastRatio(hex, DARK_BG)
+                  const lvLight    = badgeLevel(ratioLight)
+                  const lvDark     = badgeLevel(ratioDark)
+                  const passLight  = passesAA(ratioLight)
+                  const passDark   = passesAA(ratioDark)
+                  const fg         = readableText(hex)
                   return (
-                    <div key={i} className="contrast-cell" style={{ background: hex }}>
-                      <span className="contrast-ratio">{ratio.toFixed(1)}:1</span>
-                      <span className={`contrast-badge ${level ? 'contrast-badge--pass' : 'contrast-badge--fail'}`}>
-                        {level || '✗'}
-                      </span>
+                    <div key={i} className="contrast-row">
+
+                      {/* On light */}
+                      <div className="contrast-cell" style={{ background: hex, color: fg }}>
+                        <span className="contrast-ratio">{ratioLight.toFixed(1)}:1</span>
+                        <span className={`contrast-badge ${passLight ? 'contrast-badge--pass' : 'contrast-badge--fail'}`}>
+                          {lvLight}
+                        </span>
+                        {!passLight && (
+                          <button
+                            className="contrast-fix"
+                            style={{ color: fg, borderColor: fg + '44' }}
+                            onClick={() => handleAutoFix(i, LIGHT_BG)}
+                            title="Auto-fix contrast"
+                          >fix</button>
+                        )}
+                      </div>
+
+                      {/* On dark */}
+                      <div className="contrast-cell" style={{ background: hex, color: fg }}>
+                        <span className="contrast-ratio">{ratioDark.toFixed(1)}:1</span>
+                        <span className={`contrast-badge ${passDark ? 'contrast-badge--pass' : 'contrast-badge--fail'}`}>
+                          {lvDark}
+                        </span>
+                        {!passDark && (
+                          <button
+                            className="contrast-fix"
+                            style={{ color: fg, borderColor: fg + '44' }}
+                            onClick={() => handleAutoFix(i, DARK_BG)}
+                            title="Auto-fix contrast"
+                          >fix</button>
+                        )}
+                      </div>
+
                     </div>
                   )
                 })}
