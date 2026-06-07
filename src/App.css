@@ -101,6 +101,7 @@
   flex-shrink: 0;
   background: #111116;
   gap: 0;
+  overflow: hidden; /* inner left-tab-content manages its own scroll */
 }
 
 .panel--palette {
@@ -1552,4 +1553,250 @@
 .custom-template-input::placeholder {
   color: #62626C;
   font-style: italic;
+}
+
+/* ══════════════════════════════════════════
+   SPRINT 2.5 — UI RESTRUCTURE
+══════════════════════════════════════════ */
+
+/* ── Left panel tab switcher ─────────────────────────────── */
+.left-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 14px 8px;
+  flex-shrink: 0;
+}
+
+.left-tab {
+  flex: 1;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 5px 0;
+  border: 1px solid #2E2E34;
+  border-radius: 6px;
+  background: #1C1C22;
+  color: #62626C;
+  letter-spacing: 0.03em;
+  transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+.left-tab--active {
+  background: #2E2E34;
+  color: #E8E8E6;
+  border-color: #3E3E46;
+}
+.left-tab:hover:not(.left-tab--active) { color: #9A9AA4; }
+
+/* ── Left panel tab content area ─────────────────────────── */
+.left-tab-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Left panel empty states ─────────────────────────────── */
+.left-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #62626C;
+  padding: 24px;
+  text-align: center;
+}
+
+/* ── Show contrast toggle ────────────────────────────────── */
+.contrast-toggle-row {
+  flex-shrink: 0;
+  padding: 6px 14px 8px;
+  border-top: 1px solid #1C1C22;
+}
+
+.contrast-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: #62626C;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.12s ease;
+}
+.contrast-toggle-label:hover { color: #9A9AA4; }
+.contrast-toggle-label input[type="checkbox"] {
+  accent-color: #9A9AA4;
+  width: 12px;
+  height: 12px;
+  cursor: pointer;
+}
+
+/* ── Center panel — preview full ────────────────────────── */
+.preview-full {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.preview-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Overlay controls — top-right corner */
+.preview-overlay-controls {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: flex;
+  gap: 4px;
+  z-index: 10;
+}
+
+.overlay-btn {
+  width: 28px;
+  height: 28px;
+  background: rgba(17, 17, 22, 0.82);
+  border: 1px solid #2E2E34;
+  border-radius: 6px;
+  color: #62626C;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+  backdrop-filter: blur(4px);
+}
+.overlay-btn:hover { color: #9A9AA4; border-color: #3E3E46; }
+.overlay-btn--active { color: #E8E8E6; background: rgba(46,46,52,0.9); border-color: #3E3E46; }
+
+/* Center panel placeholder (no image) */
+.preview-placeholder {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #62626C;
+  border: 0.5px dashed #2E2E34;
+  border-radius: 10px;
+  margin: 24px;
+  text-align: center;
+  padding: 40px 32px;
+  line-height: 1.6;
+}
+
+/* ── Accordion sections (right panel) ───────────────────── */
+.accord-section {
+  border-bottom: 1px solid #2E2E34;
+}
+
+.accord-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+.accord-header:hover { background: #1C1C22; }
+
+.accord-header .panel-label { flex: 1; }
+
+.accord-chevron {
+  flex-shrink: 0;
+  color: #62626C;
+  transition: transform 0.15s ease, color 0.12s ease;
+}
+.accord-chevron--open {
+  transform: rotate(180deg);
+  color: #9A9AA4;
+}
+.accord-header:hover .accord-chevron { color: #9A9AA4; }
+
+.accord-body {
+  overflow: hidden;
+}
+
+.accord-body--export {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Export in right panel ───────────────────────────────── */
+/* Adjust export-tabs padding for right panel context */
+.accord-body--export .export-tabs {
+  padding: 0 14px;
+}
+
+.accord-body--export .code-block {
+  max-height: 220px;
+}
+
+.accord-body--export .custom-template-presets,
+.accord-body--export .custom-vars-hint {
+  padding: 0 14px;
+}
+
+/* Download + copy row */
+.export-download-row {
+  display: flex;
+  gap: 4px;
+  padding: 8px 14px 10px;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.export-dl-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 4px 10px;
+  border: 1px solid #2E2E34;
+  border-radius: 5px;
+  background: #1C1C22;
+  color: #62626C;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+.export-dl-btn:hover { color: #9A9AA4; border-color: #3E3E46; }
+
+.export-copy-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 4px 12px;
+  background: #E8E8E6;
+  color: #0A0A0B;
+  border: none;
+  border-radius: 5px;
+  font-weight: 500;
+  margin-left: auto;
+  transition: opacity 0.12s ease;
+}
+.export-copy-btn:hover { opacity: 0.88; }
+.export-copy-btn--copied { background: #5BA65B; color: #fff; }
+
+/* ── Vision section inside a11y accordion ───────────────── */
+.vision-section {
+  padding: 4px 0 6px;
+  border-top: 1px solid #1C1C22;
+  margin-top: 2px;
+}
+
+.vision-section-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: #62626C;
+  letter-spacing: 0.1em;
+  padding: 6px 14px 4px;
 }

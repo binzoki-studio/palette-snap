@@ -535,7 +535,6 @@ export default function App() {
   // ── UI / panel state ─────────────────────────────────────────────────────
   const [copied, setCopied]         = useState(null)
   const [visionMode, setVisionMode] = useState('normal')
-  const [paletteMode, setPaletteMode] = useState('normal')
   const [exportTab, setExportTab]       = useState('css')
   const [scaleExportTab, setScaleExportTab] = useState('tw4')
   const [currentView, setCurrentView] = useState('extract')
@@ -545,11 +544,16 @@ export default function App() {
   const [uiBg, setUiBg]                     = useState('light')
   const [roles, setRoles]                   = useState({})
   const [customTemplate, setCustomTemplate] = useState('{name}: {hex};')
-  const [scalesViewMode, setScalesViewMode] = useState('code') // 'visual'|'code'
+
+  // ── Sprint 2.5 state ─────────────────────────────────────────────────────
+  const [leftTab, setLeftTab]           = useState('swatches') // 'swatches' | 'scales'
+  const [showContrast, setShowContrast] = useState(false)
+  const [a11yOpen, setA11yOpen]         = useState(false)
+  const [exportOpen, setExportOpen]     = useState(true)
 
   // ── Panel resize state ───────────────────────────────────────────────────
-  const [panelWidths, setPanelWidthsState] = useState({ left: 380, right: 400 })
-  const panelWidthsRef = useRef({ left: 380, right: 400 })
+  const [panelWidths, setPanelWidthsState] = useState({ left: 340, right: 280 })
+  const panelWidthsRef = useRef({ left: 340, right: 280 })
   const dividerDragRef = useRef(null)
 
   const setPanelWidths = (v) => {
@@ -623,12 +627,12 @@ export default function App() {
       const { left, right } = panelWidthsRef.current
 
       if (d.side === 'left') {
-        let newLeft = Math.min(380, Math.max(180, d.startLeft + delta))
+        let newLeft = Math.min(440, Math.max(220, d.startLeft + delta))
         const center = totalWidth - newLeft - right - 8
         if (center < 300) newLeft = totalWidth - right - 308
         setPanelWidths({ left: newLeft, right })
       } else {
-        let newRight = Math.min(400, Math.max(200, d.startRight - delta))
+        let newRight = Math.min(380, Math.max(200, d.startRight - delta))
         const center = totalWidth - left - newRight - 8
         if (center < 300) newRight = totalWidth - left - 308
         setPanelWidths({ left, right: newRight })
@@ -844,7 +848,7 @@ export default function App() {
 
   const handleExport = () => {
     let text
-    if (paletteMode === 'scales') {
+    if (leftTab === 'scales') {
       const scalesData = palette.map(hex => generateScale(hex))
       const names = palette.map(hex => getColorName(hex))
       text = SCALE_EXPORT_FORMATS[scaleExportTab](palette, scalesData, names)
@@ -926,7 +930,7 @@ export default function App() {
     : {}
 
   // ── Export code ──────────────────────────────────────────────────────────
-  const exportCode = palette.length > 0 && paletteMode !== 'scales'
+  const exportCode = palette.length > 0 && leftTab !== 'scales'
     ? buildExportCode(exportTab, palette, roles, customTemplate)
     : ''
   const exportCodeHTML = exportCode && exportTab !== 'custom'
@@ -934,7 +938,7 @@ export default function App() {
     : exportCode.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
 
   const scaleExportCodeHTML = (() => {
-    if (paletteMode !== 'scales' || palette.length === 0) return ''
+    if (leftTab !== 'scales' || palette.length === 0) return ''
     const scalesData = palette.map(hex => generateScale(hex))
     const names = palette.map(hex => getColorName(hex))
     const code = SCALE_EXPORT_FORMATS[scaleExportTab](palette, scalesData, names)
@@ -991,7 +995,7 @@ export default function App() {
       {/* ── Workspace ── */}
       <div className="workspace">
 
-        {/* ═══════════ PANEL 1: IMAGE ═══════════ */}
+        {/* ═══════════ PANEL 1: IMAGE + WORKSPACE ═══════════ */}
         <aside className="panel panel--image" style={{ width: panelWidths.left }}>
 
           {/* Panel header */}
@@ -1117,6 +1121,170 @@ export default function App() {
             </div>
           </div>
 
+          {/* ── Left panel tab switcher ── */}
+          <div className="left-tabs">
+            <button
+              className={`left-tab ${leftTab === 'swatches' ? 'left-tab--active' : ''}`}
+              onClick={() => setLeftTab('swatches')}
+            >Swatches</button>
+            <button
+              className={`left-tab ${leftTab === 'scales' ? 'left-tab--active' : ''}`}
+              onClick={() => setLeftTab('scales')}
+            >Scales</button>
+          </div>
+
+          {/* ── Swatches tab ── */}
+          {leftTab === 'swatches' && (
+            <div className="left-tab-content">
+              {palette.length > 0 ? (
+                <div className="swatch-list">
+                  {palette.map((hex, i) => {
+                    const name = getColorName(hex)
+                    const contrast = getContrastRatio(hex, '#ffffff')
+                    const level = contrast >= 7 ? 'AAA' : contrast >= 4.5 ? 'AA' : null
+                    const isOpen = openSlider === i
+                    const isLocked = locks.has(i)
+                    return (
+                      <div key={i} className={`swatch-row ${isOpen ? 'swatch-row--open' : ''}`} style={isOpen ? { flex: 'none' } : undefined}>
+                        <div className="swatch-row-main" onClick={() => handleSwatchClick(i)}>
+                          <span className="swatch-block" style={{ background: hex }} />
+                          <div className="swatch-labels">
+                            <span className="swatch-hex">{hex}</span>
+                            <span className="swatch-name">{name}</span>
+                          </div>
+                          <button
+                            className={`role-pill ${roles[i] ? 'role-pill--active' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setRoles(prev => {
+                                const cur = prev[i] ?? null
+                                const nextIdx = (ROLE_ORDER.indexOf(cur) + 1) % ROLE_ORDER.length
+                                const next = ROLE_ORDER[nextIdx]
+                                const r = { ...prev }
+                                if (next === null) delete r[i]; else r[i] = next
+                                return r
+                              })
+                            }}
+                            title="Cycle semantic role"
+                          >
+                            {roles[i] ? ROLE_LABELS[roles[i]] : '·'}
+                          </button>
+                          {showContrast && (
+                            <span className={`a11y-badge ${level ? 'a11y-badge--pass' : 'a11y-badge--fail'}`}>
+                              {level || '✗'} {contrast.toFixed(1)}
+                            </span>
+                          )}
+                          <div className="swatch-actions">
+                            <button
+                              className={`swatch-action ${isLocked ? 'swatch-action--locked' : ''}`}
+                              onClick={(e) => toggleLock(i, e)}
+                              title={isLocked ? 'Unlock' : 'Lock'}
+                            ><LockIcon locked={isLocked} /></button>
+                            <button
+                              className={`swatch-action ${copied === i ? 'swatch-action--copied' : ''}`}
+                              onClick={(e) => { e.stopPropagation(); handleCopy(hex, i) }}
+                              title="Copy hex"
+                            >{copied === i ? '✓' : <CopyIcon />}</button>
+                          </div>
+                        </div>
+                        {isOpen && sliderHsl && (
+                          <div className="hsl-panel">
+                            <div className="hsl-panel-header">
+                              <span className="hsl-dot" style={{ background: hex }} />
+                              <span className="hsl-title">Adjusting {name}</span>
+                              <button className="hsl-close" onClick={() => setOpenSlider(null)}>✕</button>
+                            </div>
+                            {[
+                              { key: 'h', label: 'H', max: 360, unit: '°', grad: hueGrad   },
+                              { key: 's', label: 'S', max: 100, unit: '%', grad: satGrad   },
+                              { key: 'l', label: 'L', max: 100, unit: '%', grad: lightGrad },
+                            ].map(({ key, label, max, unit, grad }) => (
+                              <div key={key} className="hsl-row">
+                                <span className="hsl-lbl">{label}</span>
+                                <div className="hsl-track" style={{ background: grad }}>
+                                  <input
+                                    type="range" className="hsl-slider"
+                                    min={0} max={max} value={sliderHsl[key]}
+                                    onChange={e => onHslChange(key, e.target.value)}
+                                  />
+                                </div>
+                                <span className="hsl-val">{sliderHsl[key]}{unit}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="left-empty">Load an image to extract colors</div>
+              )}
+              {palette.length > 0 && (
+                <div className="color-strip">
+                  {palette.map((hex, i) => (
+                    <span key={i} style={{ flex: 1, background: hex, display: 'block' }} />
+                  ))}
+                </div>
+              )}
+              <div className="contrast-toggle-row">
+                <label className="contrast-toggle-label">
+                  <input
+                    type="checkbox"
+                    checked={showContrast}
+                    onChange={e => setShowContrast(e.target.checked)}
+                  />
+                  Show contrast
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* ── Scales tab ── */}
+          {leftTab === 'scales' && (
+            <div className="left-tab-content">
+              {palette.length > 0 ? (
+                <div className="scales-view">
+                  {palette.map((hex, i) => {
+                    const scale = generateScale(hex)
+                    const name  = getColorName(hex)
+                    return (
+                      <div key={i} className="scale-row-wrap">
+                        <div className="scale-row-label">{name}</div>
+                        <div className="scale-steps">
+                          {SHADE_STEPS.map(step => {
+                            const { hex: sHex } = scale[step]
+                            const isAnchor  = step === 500
+                            const wContrast = getContrastRatio(sHex, '#ffffff')
+                            const bContrast = getContrastRatio(sHex, '#000000')
+                            const useWhite  = wContrast >= 4.5
+                            const useBlack  = !useWhite && bContrast >= 4.5
+                            const labelCol  = readableText(sHex)
+                            return (
+                              <div
+                                key={step}
+                                className={`scale-step${isAnchor ? ' scale-step--anchor' : ''}`}
+                                style={{ background: sHex }}
+                              >
+                                <span className="scale-step-num" style={{ color: labelCol }}>{step}</span>
+                                <span className="scale-step-hex" style={{ color: labelCol }}>{sHex}</span>
+                                {isAnchor && <span className="scale-anchor-dot" style={{ background: labelCol }} />}
+                                {useWhite  && <span className="scale-text-dot scale-text-dot--white" />}
+                                {useBlack  && <span className="scale-text-dot scale-text-dot--black" />}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="left-empty">Load an image to generate scales</div>
+              )}
+            </div>
+          )}
+
         </aside>
 
         {/* ── Divider 1 ── */}
@@ -1127,8 +1295,8 @@ export default function App() {
           <div className="panel-divider-grip" />
         </div>
 
-        {/* ═══════════ PANEL 2: PALETTE ═══════════ */}
-        <main className="panel panel--palette" style={{ flex: 1, minWidth: 300, ...activePanelFilter }}>
+        {/* ═══════════ PANEL 2: PREVIEW ═══════════ */}
+        <main className="panel panel--palette" style={{ flex: 1, minWidth: 300 }}>
 
           {/* ── History view ── */}
           {currentView === 'history' && (
@@ -1142,18 +1310,10 @@ export default function App() {
                   {[...history].reverse().map((entry, revIdx) => {
                     const idx = history.length - revIdx
                     return (
-                      <button
-                        key={idx}
-                        className="history-entry"
-                        onClick={() => restoreFromHistory(entry)}
-                      >
+                      <button key={idx} className="history-entry" onClick={() => restoreFromHistory(entry)}>
                         <div className="history-swatches">
                           {entry.palette.map((hex, ci) => (
-                            <span
-                              key={ci}
-                              className="history-swatch"
-                              style={{ background: hex }}
-                            />
+                            <span key={ci} className="history-swatch" style={{ background: hex }} />
                           ))}
                         </div>
                         <span className="history-label">Palette {idx}</span>
@@ -1165,358 +1325,44 @@ export default function App() {
             </div>
           )}
 
-          {/* ── Extract view ── */}
-          {currentView === 'extract' && (<>
-
-          {/* Toolbar */}
-          <div className="palette-toolbar">
-            <div className="palette-modes">
-              {['normal', 'a11y', 'preview', 'scales'].map(m => (
+          {/* ── Extract view: preview only ── */}
+          {currentView === 'extract' && (
+            <div className="preview-full">
+              {/* Overlay controls — top-right */}
+              <div className="preview-overlay-controls">
                 <button
-                  key={m}
-                  className={`palette-mode-btn ${paletteMode === m ? 'palette-mode-btn--active' : ''}`}
-                  onClick={() => setPaletteMode(m)}
-                >{m}</button>
-              ))}
-            </div>
-            <div className="toolbar-right">
-              {/* Dark/Light toggle */}
-              <button
-                className={`toolbar-icon-btn ${uiBg === 'dark' ? 'toolbar-icon-btn--active' : ''}`}
-                onClick={() => setUiBg(b => b === 'light' ? 'dark' : 'light')}
-                title={uiBg === 'light' ? 'Switch to dark preview' : 'Switch to light preview'}
-              >
-                {uiBg === 'light' ? (
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                    <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/>
-                  </svg>
-                ) : (
-                  <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                    <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/>
-                  </svg>
-                )}
-              </button>
-              {/* Download PNG / TXT */}
-              {palette.length > 0 && (
-                <div className="download-group">
-                  <button className="toolbar-icon-btn" onClick={downloadPNG} title="Download palette as PNG">PNG</button>
-                  <button className="toolbar-icon-btn" onClick={downloadTXT} title="Download palette as TXT">TXT</button>
-                </div>
-              )}
-              <button
-                className={`export-btn ${copied === 'export' ? 'export-btn--copied' : ''}`}
-                onClick={handleExport}
-                disabled={!palette.length}
-              >
-                {copied === 'export' ? '✓ copied' : `export ↓`}
-              </button>
-            </div>
-          </div>
-
-          {/* Swatch list — normal / a11y modes */}
-          {(paletteMode === 'normal' || paletteMode === 'a11y') && palette.length > 0 && (
-            <div className="swatch-list">
-              {palette.map((hex, i) => {
-                const name = getColorName(hex)
-                const contrast = getContrastRatio(hex, '#ffffff')
-                const level = contrast >= 7 ? 'AAA' : contrast >= 4.5 ? 'AA' : null
-                const isOpen = openSlider === i
-                const isLocked = locks.has(i)
-                return (
-                  <div key={i} className={`swatch-row ${isOpen ? 'swatch-row--open' : ''}`} style={isOpen ? { flex: 'none' } : undefined}>
-                    <div
-                      className="swatch-row-main"
-                      onClick={() => handleSwatchClick(i)}
-                    >
-                      {/* Color block */}
-                      <span className="swatch-block" style={{ background: hex }} />
-
-                      {/* Labels */}
-                      <div className="swatch-labels">
-                        <span className="swatch-hex">{hex}</span>
-                        <span className="swatch-name">{name}</span>
-                      </div>
-
-                      {/* Role pill */}
-                      <button
-                        className={`role-pill ${roles[i] ? 'role-pill--active' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setRoles(prev => {
-                            const cur = prev[i] ?? null
-                            const nextIdx = (ROLE_ORDER.indexOf(cur) + 1) % ROLE_ORDER.length
-                            const next = ROLE_ORDER[nextIdx]
-                            const r = { ...prev }
-                            if (next === null) delete r[i]; else r[i] = next
-                            return r
-                          })
-                        }}
-                        title="Cycle semantic role"
-                      >
-                        {roles[i] ? ROLE_LABELS[roles[i]] : '·'}
-                      </button>
-
-                      {/* A11y badge in a11y mode */}
-                      {paletteMode === 'a11y' && (
-                        <span className={`a11y-badge ${level ? 'a11y-badge--pass' : 'a11y-badge--fail'}`}>
-                          {level || '✗'} {contrast.toFixed(1)}
-                        </span>
-                      )}
-
-                      {/* Actions */}
-                      <div className="swatch-actions">
-                        <button
-                          className={`swatch-action ${isLocked ? 'swatch-action--locked' : ''}`}
-                          onClick={(e) => toggleLock(i, e)}
-                          title={isLocked ? 'Unlock' : 'Lock'}
-                        >
-                          <LockIcon locked={isLocked} />
-                        </button>
-                        <button
-                          className={`swatch-action ${copied === i ? 'swatch-action--copied' : ''}`}
-                          onClick={(e) => { e.stopPropagation(); handleCopy(hex, i) }}
-                          title="Copy hex"
-                        >
-                          {copied === i ? '✓' : <CopyIcon />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Inline HSL panel */}
-                    {isOpen && sliderHsl && (
-                      <div className="hsl-panel">
-                        <div className="hsl-panel-header">
-                          <span className="hsl-dot" style={{ background: hex }} />
-                          <span className="hsl-title">Adjusting {name}</span>
-                          <button className="hsl-close" onClick={() => setOpenSlider(null)}>✕</button>
-                        </div>
-                        {[
-                          { key: 'h', label: 'H', max: 360, unit: '°', grad: hueGrad   },
-                          { key: 's', label: 'S', max: 100, unit: '%', grad: satGrad   },
-                          { key: 'l', label: 'L', max: 100, unit: '%', grad: lightGrad },
-                        ].map(({ key, label, max, unit, grad }) => (
-                          <div key={key} className="hsl-row">
-                            <span className="hsl-lbl">{label}</span>
-                            <div className="hsl-track" style={{ background: grad }}>
-                              <input
-                                type="range"
-                                className="hsl-slider"
-                                min={0} max={max}
-                                value={sliderHsl[key]}
-                                onChange={e => onHslChange(key, e.target.value)}
-                              />
-                            </div>
-                            <span className="hsl-val">{sliderHsl[key]}{unit}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-
-            </div>
-          )}
-
-          {/* Color strip */}
-          {(paletteMode === 'normal' || paletteMode === 'a11y') && palette.length > 0 && (
-            <div className="color-strip">
-              {palette.map((hex, i) => (
-                <span key={i} style={{ flex: 1, background: hex, display: 'block' }} />
-              ))}
-            </div>
-          )}
-
-          {/* Scales view */}
-          {paletteMode === 'scales' && palette.length > 0 && (
-            <div className="scales-view">
-              {palette.map((hex, i) => {
-                const scale = generateScale(hex)
-                const name  = getColorName(hex)
-                return (
-                  <div key={i} className="scale-row-wrap">
-                    <div className="scale-row-label">{name}</div>
-                    <div className="scale-steps">
-                      {SHADE_STEPS.map(step => {
-                        const { hex: sHex } = scale[step]
-                        const isAnchor  = step === 500
-                        const wContrast = getContrastRatio(sHex, '#ffffff')
-                        const bContrast = getContrastRatio(sHex, '#000000')
-                        const useWhite  = wContrast >= 4.5
-                        const useBlack  = !useWhite && bContrast >= 4.5
-                        const labelCol  = readableText(sHex)
-                        return (
-                          <div
-                            key={step}
-                            className={`scale-step${isAnchor ? ' scale-step--anchor' : ''}`}
-                            style={{ background: sHex }}
-                          >
-                            <span className="scale-step-num"  style={{ color: labelCol }}>{step}</span>
-                            <span className="scale-step-hex"  style={{ color: labelCol }}>{sHex}</span>
-                            {isAnchor  && <span className="scale-anchor-dot" style={{ background: labelCol }} />}
-                            {useWhite  && <span className="scale-text-dot scale-text-dot--white" />}
-                            {useBlack  && <span className="scale-text-dot scale-text-dot--black" />}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {/* Preview mode — full landing page */}
-          {paletteMode === 'preview' && (
-            <div className="preview-mode">
-              <LandingPreview palette={palette} roles={roles} uiBg={uiBg} />
-            </div>
-          )}
-
-          {/* Empty state */}
-          {palette.length === 0 && (
-            <div className="palette-empty">
-              <span>Load an image to extract colors</span>
-            </div>
-          )}
-
-          {/* Export code block */}
-          {palette.length > 0 && (
-            <div className="export-section">
-              {/* Scales: visual/code toggle row */}
-              {paletteMode === 'scales' && (
-                <div className="scales-view-toggle">
-                  {['code', 'visual'].map(m => (
-                    <button
-                      key={m}
-                      className={`scales-view-btn ${scalesViewMode === m ? 'scales-view-btn--active' : ''}`}
-                      onClick={() => setScalesViewMode(m)}
-                    >{m}</button>
-                  ))}
-                  <span className="export-scales-label">{palette.length} colors · 11 steps each</span>
-                </div>
-              )}
-
-              {/* Visual shades grid */}
-              {paletteMode === 'scales' && scalesViewMode === 'visual' && (
-                <div className="scales-visual">
-                  {palette.map((hex, i) => {
-                    const scale = generateScale(hex)
-                    const name  = getColorName(hex)
-                    return (
-                      <div key={i} className="scales-visual-row">
-                        <div className="scales-visual-label">{name}</div>
-                        <div className="scales-visual-swatches">
-                          {SHADE_STEPS.map(step => {
-                            const { hex: sHex } = scale[step]
-                            const lbl = readableText(sHex)
-                            return (
-                              <div key={step} className="scales-visual-swatch" style={{ background: sHex }}>
-                                <span className="svs-step" style={{ color: lbl }}>{step}</span>
-                                <span className="svs-hex"  style={{ color: lbl }}>{sHex}</span>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )
-                  })}
-                  <button
-                    className={`scales-visual-copy ${copied === 'export' ? 'scales-visual-copy--copied' : ''}`}
-                    onClick={handleExport}
-                  >{copied === 'export' ? '✓ copied' : 'copy code'}</button>
-                </div>
-              )}
-
-              {/* Code tab bar + pre (scales) */}
-              {paletteMode === 'scales' && scalesViewMode === 'code' && (<>
-                <div className="export-tabs">
-                  {SCALE_EXPORT_TABS.map(tab => (
-                    <button
-                      key={tab}
-                      className={`export-tab ${scaleExportTab === tab ? 'export-tab--active' : ''}`}
-                      onClick={() => setScaleExportTab(tab)}
-                    >{tab}</button>
-                  ))}
-                </div>
-                <pre className="code-block" dangerouslySetInnerHTML={{ __html: scaleExportCodeHTML }} />
-              </>)}
-
-              {/* Non-scales: tab bar + output (with custom template UI) */}
-              {paletteMode !== 'scales' && (
-                <>
-                  <div className="export-tabs">
-                    {EXPORT_TABS.map(tab => (
-                      <button
-                        key={tab}
-                        className={`export-tab ${exportTab === tab ? 'export-tab--active' : ''}`}
-                        onClick={() => setExportTab(tab)}
-                      >{tab}</button>
-                    ))}
-                  </div>
-
-                  {/* Custom template editor */}
-                  {exportTab === 'custom' ? (
-                    <div className="custom-template-section">
-                      <div className="custom-template-presets">
-                        {Object.entries(CUSTOM_PRESET_VALUES).map(([label, tpl]) => (
-                          <button
-                            key={label}
-                            className={`custom-preset-btn ${customTemplate === tpl ? 'custom-preset-btn--active' : ''}`}
-                            onClick={() => {
-                              setCustomTemplate(tpl)
-                              customSelRef.current = { start: tpl.length, end: tpl.length }
-                            }}
-                          >{label}</button>
-                        ))}
-                      </div>
-                      <div className="custom-vars-hint">
-                        {['{name}', '{hex}', '{rgb}', '{hsl}', '{oklch}', '{role}', '{index}'].map(v => (
-                          <span
-                            key={v}
-                            className="custom-var-chip"
-                            onClick={() => {
-                              const { start, end } = customSelRef.current
-                              setCustomTemplate(t => t.slice(0, start) + v + t.slice(end))
-                              const newPos = start + v.length
-                              customSelRef.current = { start: newPos, end: newPos }
-                              requestAnimationFrame(() => {
-                                customTemplateRef.current?.focus()
-                                customTemplateRef.current?.setSelectionRange(newPos, newPos)
-                              })
-                            }}
-                          >{v}</span>
-                        ))}
-                      </div>
-                      <textarea
-                        ref={customTemplateRef}
-                        className="custom-template-input"
-                        value={customTemplate}
-                        onChange={e => setCustomTemplate(e.target.value)}
-                        onSelect={e => { customSelRef.current = { start: e.target.selectionStart, end: e.target.selectionEnd } }}
-                        onKeyUp={e =>  { customSelRef.current = { start: e.target.selectionStart, end: e.target.selectionEnd } }}
-                        onClick={e =>  { customSelRef.current = { start: e.target.selectionStart, end: e.target.selectionEnd } }}
-                        rows={2}
-                        spellCheck={false}
-                        placeholder="type a template or click a preset above"
-                      />
-                      <pre
-                        className="code-block"
-                        dangerouslySetInnerHTML={{ __html: exportCodeHTML }}
-                      />
-                    </div>
+                  className={`overlay-btn ${uiBg === 'dark' ? 'overlay-btn--active' : ''}`}
+                  onClick={() => setUiBg(b => b === 'light' ? 'dark' : 'light')}
+                  title={uiBg === 'light' ? 'Switch to dark preview' : 'Switch to light preview'}
+                >
+                  {uiBg === 'light' ? (
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                      <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0zm0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13zm8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5zM3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8zm10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0zm-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0zm9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707zM4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708z"/>
+                    </svg>
                   ) : (
-                    <pre
-                      className="code-block"
-                      dangerouslySetInnerHTML={{ __html: exportCodeHTML }}
-                    />
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                      <path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/>
+                    </svg>
                   )}
-                </>
-              )}
+                </button>
+                <button className="overlay-btn" title="Fullscreen (coming soon)">
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M1.5 1h4a.5.5 0 0 1 0 1H2v3.5a.5.5 0 0 1-1 0V1.5A.5.5 0 0 1 1.5 1zm9 0h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V2h-3.5a.5.5 0 0 1 0-1zM1 10.5a.5.5 0 0 1 .5-.5h.5v3.5H5.5a.5.5 0 0 1 0 1H1.5a.5.5 0 0 1-.5-.5v-4zm15 0v4a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1 0-1H14V10.5a.5.5 0 0 1 1 0z"/>
+                  </svg>
+                </button>
+              </div>
+              {/* Preview content with vision filter */}
+              <div className="preview-scroll" style={activePanelFilter}>
+                {palette.length > 0 ? (
+                  <LandingPreview palette={palette} roles={roles} uiBg={uiBg} />
+                ) : (
+                  <div className="preview-placeholder">
+                    <span>Drop an image to see your palette in context</span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
-
-          </>)}
 
         </main>
 
@@ -1528,100 +1374,192 @@ export default function App() {
           <div className="panel-divider-grip" />
         </div>
 
-        {/* ═══════════ PANEL 3: INTELLIGENCE ═══════════ */}
+        {/* ═══════════ PANEL 3: UTILITIES ═══════════ */}
         <aside className="panel panel--intel" style={{ width: panelWidths.right }}>
 
-          {/* Accessibility header */}
-          <div className="panel-header">
-            <span className="panel-label">ACCESSIBILITY</span>
-            {palette.length > 0 && (
-              <span className="panel-badge" style={{ color: scoreColor }}>
-                {passCount}/{palette.length} pass
-              </span>
+          {/* ── Accessibility accordion (collapsed by default) ── */}
+          <div className="accord-section">
+            <button className="accord-header" onClick={() => setA11yOpen(o => !o)}>
+              <span className="panel-label">ACCESSIBILITY</span>
+              {palette.length > 0 && (
+                <span className="panel-badge" style={{ color: scoreColor }}>
+                  {passCount}/{palette.length} pass
+                </span>
+              )}
+              <svg
+                className={`accord-chevron ${a11yOpen ? 'accord-chevron--open' : ''}`}
+                width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"
+              >
+                <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {a11yOpen && (
+              <div className="accord-body">
+                {palette.length > 0 ? (
+                  <>
+                    <div className="contrast-matrix-header">
+                      <span className="cm-col-label">on light</span>
+                      <span className="cm-col-label">on dark</span>
+                    </div>
+                    <div className="contrast-matrix">
+                      {palette.map((hex, i) => {
+                        const ratioLight = getContrastRatio(hex, LIGHT_BG)
+                        const ratioDark  = getContrastRatio(hex, DARK_BG)
+                        const lvLight    = badgeLevel(ratioLight)
+                        const lvDark     = badgeLevel(ratioDark)
+                        const passLight  = passesAA(ratioLight)
+                        const passDark   = passesAA(ratioDark)
+                        const fg         = readableText(hex)
+                        const isWhiteFg  = fg === '#ffffff'
+                        const passBg  = isWhiteFg ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.7)'
+                        const failBg  = isWhiteFg ? 'rgba(0,0,0,0.38)'       : 'rgba(255,255,255,0.55)'
+                        return (
+                          <div key={i} className="contrast-row">
+                            <div className="contrast-cell" style={{ background: hex, color: fg }}>
+                              <span className="contrast-ratio">{ratioLight.toFixed(1)}:1</span>
+                              <span className="contrast-badge" style={{ background: passLight ? passBg : failBg }}>{lvLight}</span>
+                              {!passLight && (
+                                <button className="contrast-fix" style={{ color: fg, borderColor: fg + '44' }} onClick={() => handleAutoFix(i, LIGHT_BG)} title="Auto-fix contrast">fix</button>
+                              )}
+                            </div>
+                            <div className="contrast-cell" style={{ background: hex, color: fg }}>
+                              <span className="contrast-ratio">{ratioDark.toFixed(1)}:1</span>
+                              <span className="contrast-badge" style={{ background: passDark ? passBg : failBg }}>{lvDark}</span>
+                              {!passDark && (
+                                <button className="contrast-fix" style={{ color: fg, borderColor: fg + '44' }} onClick={() => handleAutoFix(i, DARK_BG)} title="Auto-fix contrast">fix</button>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div className="vision-section">
+                      <div className="vision-section-label">VISION · SIMULATE</div>
+                      <div className="vision-pills">
+                        {Object.keys(VISION_FILTERS).map(m => (
+                          <button
+                            key={m}
+                            className={`vision-pill ${visionMode === m ? 'vision-pill--active' : ''}`}
+                            onClick={() => setVisionMode(m)}
+                          >{m}</button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="intel-empty">Load an image first</div>
+                )}
+              </div>
             )}
           </div>
 
-          {palette.length > 0 ? (
-            <>
-              {/* Column headers */}
-              <div className="contrast-matrix-header">
-                <span className="cm-col-label">on light</span>
-                <span className="cm-col-label">on dark</span>
-              </div>
-
-              {/* Contrast matrix rows — one per extracted color */}
-              <div className="contrast-matrix">
-                {palette.map((hex, i) => {
-                  const ratioLight = getContrastRatio(hex, LIGHT_BG)
-                  const ratioDark  = getContrastRatio(hex, DARK_BG)
-                  const lvLight    = badgeLevel(ratioLight)
-                  const lvDark     = badgeLevel(ratioDark)
-                  const passLight  = passesAA(ratioLight)
-                  const passDark   = passesAA(ratioDark)
-                  const fg         = readableText(hex)
-                  // Badge backgrounds must contrast with fg — when fg is black,
-                  // dark overlays are invisible; use light overlays instead.
-                  const isWhiteFg  = fg === '#ffffff'
-                  const passBg  = isWhiteFg ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.7)'
-                  const failBg  = isWhiteFg ? 'rgba(0,0,0,0.38)'       : 'rgba(255,255,255,0.55)'
-                  return (
-                    <div key={i} className="contrast-row">
-
-                      {/* On light */}
-                      <div className="contrast-cell" style={{ background: hex, color: fg }}>
-                        <span className="contrast-ratio">{ratioLight.toFixed(1)}:1</span>
-                        <span className="contrast-badge" style={{ background: passLight ? passBg : failBg }}>
-                          {lvLight}
-                        </span>
-                        {!passLight && (
+          {/* ── Export accordion (open by default) ── */}
+          <div className="accord-section">
+            <button className="accord-header" onClick={() => setExportOpen(o => !o)}>
+              <span className="panel-label">EXPORT</span>
+              <svg
+                className={`accord-chevron ${exportOpen ? 'accord-chevron--open' : ''}`}
+                width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"
+              >
+                <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {exportOpen && (
+              <div className="accord-body accord-body--export">
+                {palette.length > 0 ? (
+                  <>
+                    {/* Scales export tabs */}
+                    {leftTab === 'scales' && (<>
+                      <div className="export-tabs">
+                        {SCALE_EXPORT_TABS.map(tab => (
                           <button
-                            className="contrast-fix"
-                            style={{ color: fg, borderColor: fg + '44' }}
-                            onClick={() => handleAutoFix(i, LIGHT_BG)}
-                            title="Auto-fix contrast"
-                          >fix</button>
-                        )}
+                            key={tab}
+                            className={`export-tab ${scaleExportTab === tab ? 'export-tab--active' : ''}`}
+                            onClick={() => setScaleExportTab(tab)}
+                          >{tab}</button>
+                        ))}
                       </div>
+                      <pre className="code-block" dangerouslySetInnerHTML={{ __html: scaleExportCodeHTML }} />
+                    </>)}
 
-                      {/* On dark */}
-                      <div className="contrast-cell" style={{ background: hex, color: fg }}>
-                        <span className="contrast-ratio">{ratioDark.toFixed(1)}:1</span>
-                        <span className="contrast-badge" style={{ background: passDark ? passBg : failBg }}>
-                          {lvDark}
-                        </span>
-                        {!passDark && (
+                    {/* Swatches export tabs */}
+                    {leftTab === 'swatches' && (<>
+                      <div className="export-tabs">
+                        {EXPORT_TABS.map(tab => (
                           <button
-                            className="contrast-fix"
-                            style={{ color: fg, borderColor: fg + '44' }}
-                            onClick={() => handleAutoFix(i, DARK_BG)}
-                            title="Auto-fix contrast"
-                          >fix</button>
-                        )}
+                            key={tab}
+                            className={`export-tab ${exportTab === tab ? 'export-tab--active' : ''}`}
+                            onClick={() => setExportTab(tab)}
+                          >{tab}</button>
+                        ))}
                       </div>
+                      {exportTab === 'custom' ? (
+                        <div className="custom-template-section">
+                          <div className="custom-template-presets">
+                            {Object.entries(CUSTOM_PRESET_VALUES).map(([label, tpl]) => (
+                              <button
+                                key={label}
+                                className={`custom-preset-btn ${customTemplate === tpl ? 'custom-preset-btn--active' : ''}`}
+                                onClick={() => {
+                                  setCustomTemplate(tpl)
+                                  customSelRef.current = { start: tpl.length, end: tpl.length }
+                                }}
+                              >{label}</button>
+                            ))}
+                          </div>
+                          <div className="custom-vars-hint">
+                            {['{name}', '{hex}', '{rgb}', '{hsl}', '{oklch}', '{role}', '{index}'].map(v => (
+                              <span
+                                key={v}
+                                className="custom-var-chip"
+                                onClick={() => {
+                                  const { start, end } = customSelRef.current
+                                  setCustomTemplate(t => t.slice(0, start) + v + t.slice(end))
+                                  const newPos = start + v.length
+                                  customSelRef.current = { start: newPos, end: newPos }
+                                  requestAnimationFrame(() => {
+                                    customTemplateRef.current?.focus()
+                                    customTemplateRef.current?.setSelectionRange(newPos, newPos)
+                                  })
+                                }}
+                              >{v}</span>
+                            ))}
+                          </div>
+                          <textarea
+                            ref={customTemplateRef}
+                            className="custom-template-input"
+                            value={customTemplate}
+                            onChange={e => setCustomTemplate(e.target.value)}
+                            onSelect={e => { customSelRef.current = { start: e.target.selectionStart, end: e.target.selectionEnd } }}
+                            onKeyUp={e =>  { customSelRef.current = { start: e.target.selectionStart, end: e.target.selectionEnd } }}
+                            onClick={e =>  { customSelRef.current = { start: e.target.selectionStart, end: e.target.selectionEnd } }}
+                            rows={2}
+                            spellCheck={false}
+                            placeholder="type a template or click a preset above"
+                          />
+                          <pre className="code-block" dangerouslySetInnerHTML={{ __html: exportCodeHTML }} />
+                        </div>
+                      ) : (
+                        <pre className="code-block" dangerouslySetInnerHTML={{ __html: exportCodeHTML }} />
+                      )}
+                    </>)}
 
+                    {/* Download + copy row */}
+                    <div className="export-download-row">
+                      <button className="export-dl-btn" onClick={downloadPNG}>PNG</button>
+                      <button className="export-dl-btn" onClick={downloadTXT}>TXT</button>
+                      <button
+                        className={`export-copy-btn ${copied === 'export' ? 'export-copy-btn--copied' : ''}`}
+                        onClick={handleExport}
+                      >{copied === 'export' ? '✓ copied' : 'copy ↓'}</button>
                     </div>
-                  )
-                })}
+                  </>
+                ) : (
+                  <div className="intel-empty">Load an image to export</div>
+                )}
               </div>
-            </>
-          ) : (
-            <div className="intel-empty">—</div>
-          )}
-
-          {/* Vision simulation */}
-          <div className="panel-header" style={{ marginTop: '1rem' }}>
-            <span className="panel-label">VISION · SIMULATE</span>
+            )}
           </div>
-          <div className="vision-pills">
-            {Object.keys(VISION_FILTERS).map(m => (
-              <button
-                key={m}
-                className={`vision-pill ${visionMode === m ? 'vision-pill--active' : ''}`}
-                onClick={() => setVisionMode(m)}
-              >{m}</button>
-            ))}
-          </div>
-
 
         </aside>
       </div>
