@@ -476,6 +476,7 @@ export default function App() {
   const paletteRef      = useRef(palette)
   const isDraggingRegion    = useRef(false)
   const customTemplateRef   = useRef(null)
+  const customSelRef        = useRef({ start: 0, end: 0 })
 
   colorCountRef.current = colorCount
   locksRef.current = locks
@@ -1370,7 +1371,10 @@ export default function App() {
                           <button
                             key={label}
                             className={`custom-preset-btn ${customTemplate === tpl ? 'custom-preset-btn--active' : ''}`}
-                            onClick={() => setCustomTemplate(tpl)}
+                            onClick={() => {
+                              setCustomTemplate(tpl)
+                              customSelRef.current = { start: tpl.length, end: tpl.length }
+                            }}
                           >{label}</button>
                         ))}
                       </div>
@@ -1380,14 +1384,14 @@ export default function App() {
                             key={v}
                             className="custom-var-chip"
                             onClick={() => {
-                              const el = customTemplateRef.current
-                              if (el && document.activeElement === el) {
-                                const s = el.selectionStart, e2 = el.selectionEnd
-                                setCustomTemplate(t => t.slice(0, s) + v + t.slice(e2))
-                                requestAnimationFrame(() => { el.focus(); el.setSelectionRange(s + v.length, s + v.length) })
-                              } else {
-                                setCustomTemplate(t => t + v)
-                              }
+                              const { start, end } = customSelRef.current
+                              setCustomTemplate(t => t.slice(0, start) + v + t.slice(end))
+                              const newPos = start + v.length
+                              customSelRef.current = { start: newPos, end: newPos }
+                              requestAnimationFrame(() => {
+                                customTemplateRef.current?.focus()
+                                customTemplateRef.current?.setSelectionRange(newPos, newPos)
+                              })
                             }}
                           >{v}</span>
                         ))}
@@ -1397,8 +1401,12 @@ export default function App() {
                         className="custom-template-input"
                         value={customTemplate}
                         onChange={e => setCustomTemplate(e.target.value)}
+                        onSelect={e => { customSelRef.current = { start: e.target.selectionStart, end: e.target.selectionEnd } }}
+                        onKeyUp={e =>  { customSelRef.current = { start: e.target.selectionStart, end: e.target.selectionEnd } }}
+                        onClick={e =>  { customSelRef.current = { start: e.target.selectionStart, end: e.target.selectionEnd } }}
                         rows={2}
                         spellCheck={false}
+                        placeholder="type a template or click a preset above"
                       />
                       <pre
                         className="code-block"

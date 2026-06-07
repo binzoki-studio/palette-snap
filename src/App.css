@@ -1380,3 +1380,7 @@
   width: 100%;
   box-sizing: border-box;
 }
+.custom-template-input::placeholder {
+  color: #62626C;
+  font-style: italic;
+}
