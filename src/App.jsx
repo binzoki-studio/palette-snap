@@ -1493,14 +1493,20 @@ function resolveImageUrl(input) {
 
 /**
  * Returns a user-friendly error string for a failed URL image load.
+ * `resolvedUrl`: the URL we actually fetched (may differ from originalUrl if transformed)
  * `reason`: 'not-image' | 'cors' | 'http-NNN' | 'unknown'
  */
-function urlLoadError(originalUrl, reason) {
+function urlLoadError(originalUrl, resolvedUrl, reason) {
+  const wasTransformed = resolvedUrl && resolvedUrl !== originalUrl
   try {
     const host = new URL(originalUrl).hostname.replace(/^www\./, '')
 
     if (host === 'unsplash.com') {
-      return "Unsplash page URLs are not direct images. On the photo page, right-click the photo → \"Open image in new tab\", then paste that URL here."
+      if (wasTransformed) {
+        // We already tried the CDN URL — Unsplash requires an ixid auth token
+        return "We converted your link to a direct image URL, but Unsplash's CDN blocked access (authentication required). On the photo page, right-click the photo → \"Open image in new tab\", then paste that URL here — it will include the access token."
+      }
+      return "Unsplash page URLs are not direct images. Right-click the photo → \"Open image in new tab\", then paste that URL here."
     }
     if (['pexels.com','pixabay.com','flickr.com','500px.com'].includes(host)) {
       return `${host} page URLs are not direct images. Right-click the photo on the page then choose "Open image in new tab" and paste that URL here.`
@@ -1793,7 +1799,7 @@ export default function App() {
       if (err.message === 'not-image')            reason = 'not-image'
       else if (err.name === 'TypeError')           reason = 'cors'       // fetch CORS block
       else if (err.message.startsWith('http-'))   reason = err.message
-      setUrlError(urlLoadError(raw, reason))
+      setUrlError(urlLoadError(raw, resolved, reason))
     } finally {
       setUrlLoading(false)
     }
