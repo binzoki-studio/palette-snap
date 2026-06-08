@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { getPalette } from 'colorthief'
+import ntc from './ntc.js'
 import './App.css'
 
 // ── Design tokens (mirrored in CSS) ─────────────────────────────────────────
@@ -58,41 +59,16 @@ function getContrastRatio(h1, h2) {
   return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)
 }
 
+// Nearest named color via Name That Color (Chirag Mehta, ~1500 names).
+// ntc.name(hex) → [matchHex, colorName, exactMatch]
 function getColorName(hex) {
-  const { h, s, l } = hexToHsl(hex)
-  if (s < 8) {
-    if (l < 10) return 'Obsidian'
-    if (l < 22) return 'Charcoal'
-    if (l < 38) return 'Ash'
-    if (l < 55) return 'Slate'
-    if (l < 72) return 'Silver'
-    if (l < 88) return 'Pearl'
-    return 'Snow'
+  try {
+    const clean = '#' + hex.replace('#', '').slice(0, 6).toUpperCase()
+    const result = ntc.name(clean)
+    return result[1] || 'Unknown'
+  } catch {
+    return 'Unknown'
   }
-  if (s < 22 && h >= 15 && h < 55) {
-    if (l < 30) return 'Dark Umber'
-    if (l < 50) return 'Warm Taupe'
-    if (l < 70) return 'Warm Sand'
-    return 'Cream'
-  }
-  if (s < 20 && h >= 200 && h < 265) {
-    if (l < 18) return 'Deep Navy'
-    if (l < 35) return 'Dark Slate'
-    if (l < 55) return 'Storm'
-    return 'Cool Mist'
-  }
-  const ld = l < 22 ? 'Deep ' : l < 38 ? 'Dark ' : l > 78 ? 'Light ' : l > 90 ? 'Pale ' : ''
-  if (h < 15 || h >= 345) return l > 65 ? 'Rose' : s > 65 ? 'Ember' : ld + 'Red'
-  if (h < 40) return s > 70 ? 'Amber' : l < 40 ? 'Sienna' : 'Ochre'
-  if (h < 65) return l < 45 ? 'Gold' : 'Canary'
-  if (h < 80) return 'Lime'
-  if (h < 150) return l < 25 ? 'Forest' : l < 45 ? 'Moss' : 'Sage'
-  if (h < 185) return l < 32 ? 'Deep Teal' : 'Ocean Mist'
-  if (h < 210) return l < 30 ? 'Midnight' : 'Sky'
-  if (h < 255) return l < 22 ? 'Midnight' : l < 40 ? 'Denim' : 'Cerulean'
-  if (h < 285) return l < 35 ? ld + 'Indigo' : 'Iris'
-  if (h < 315) return l < 35 ? 'Plum' : 'Lavender'
-  return l < 50 ? 'Berry' : 'Blush'
 }
 
 // ── A11y helpers ─────────────────────────────────────────────────────────────
@@ -443,17 +419,73 @@ function generateScale(hex) {
 
 function toKebab(name) { return name.toLowerCase().replace(/\s+/g, '-') }
 
-// Deduplicate names — if two colors share a name, append -2, -3, etc.
-function uniqueKebabNames(names) {
+// Resolve a single hex's display name using NTC, with no-arg fallback.
+// oklchL is the OKLCH L value (0–1) for lightness qualifier fallback.
+function _resolvedName(hex, oklchL) {
+  const base = getColorName(hex)
+  return { base, L: oklchL }
+}
+
+// Returns deduplicated display names for a palette.
+// oklchList: parallel array of { L, C, H } objects (or null).
+// Deduplication strategy:
+//   - First occurrence of a shared name: keep as-is
+//   - Later occurrences: qualify by OKLCH L —
+//       L < 0.30 → "Deep <name>"
+//       L 0.30–0.50 → "Dark <name>"
+//       L 0.50–0.70 → try NTC on a lightness-nudged hex; fallback "Soft <name>"
+//       L > 0.70 → "Light <name>"
+function getUniqueNames(hexList, oklchList) {
+  const oklchs = oklchList ?? hexList.map(() => null)
+
+  // Raw NTC names
+  const raw = hexList.map(hex => getColorName(hex))
+
+  // Count occurrences
   const count = {}
-  names.forEach(n => { count[n] = (count[n] || 0) + 1 })
-  const seen = {}
-  return names.map(n => {
-    const k = toKebab(n)
-    if (count[n] === 1) return k
-    seen[n] = (seen[n] || 0) + 1
-    return `${k}-${seen[n]}`
+  raw.forEach(n => { count[n] = (count[n] || 0) + 1 })
+
+  const seen   = {}  // name → how many times we've encountered it
+  const used   = new Set(raw.filter((n, i) => count[n] === 1)) // unique names already "taken"
+
+  return raw.map((name, i) => {
+    if (count[name] === 1) return name   // globally unique — keep
+
+    seen[name] = (seen[name] || 0) + 1
+    if (seen[name] === 1) {
+      used.add(name)
+      return name                        // first occurrence of a dup — keep unqualified
+    }
+
+    // Subsequent duplicate: qualify by lightness
+    const oklch = oklchs[i]
+    const L = oklch ? oklch.L : hexToHsl(hexList[i]).l / 100
+
+    if (L >= 0.50 && L < 0.70) {
+      // Try nudging L to get a different NTC name
+      const { L: oL, C, H } = oklch ?? hexToOklch(hexList[i])
+      const nudge   = oL > 0.60 ? oL - 0.07 : oL + 0.07
+      const altHex  = oklchToHex(nudge, C, H)
+      const altName = getColorName(altHex)
+      if (altName !== name && !used.has(altName)) {
+        used.add(altName)
+        return altName
+      }
+      const q = 'Soft ' + name
+      used.add(q)
+      return q
+    }
+
+    const qualifier = L < 0.30 ? 'Deep' : L < 0.50 ? 'Dark' : 'Light'
+    const qualified = `${qualifier} ${name}`
+    used.add(qualified)
+    return qualified
   })
+}
+
+// Kebab-case unique names — used by scale/CSS export.
+function uniqueKebabNames(hexList, oklchList) {
+  return getUniqueNames(hexList, oklchList).map(toKebab)
 }
 
 // ── Semantic roles ────────────────────────────────────────────────────────────
@@ -520,8 +552,8 @@ const CUSTOM_PRESET_VALUES = {
   'Android XML': '<color name="{name}">{hex}</color>',
 }
 
-function applyTemplate(tpl, hex, i, rolesMap) {
-  const name = toKebab(getColorName(hex))
+function applyTemplate(tpl, hex, i, rolesMap, displayName) {
+  const name = toKebab(displayName ?? getColorName(hex))
   const { h, s, l } = hexToHsl(hex)
   const rv = parseInt(hex.slice(1,3),16), gv = parseInt(hex.slice(3,5),16), bv2 = parseInt(hex.slice(5,7),16)
   const { L, C, H } = hexToOklch(hex)
@@ -538,28 +570,28 @@ function applyTemplate(tpl, hex, i, rolesMap) {
 
 const SCALE_EXPORT_TABS = ['tw4', 'tw3', 'css', 'json']
 const SCALE_EXPORT_FORMATS = {
-  tw4: (palette, scales, names) => {
-    const keys = uniqueKebabNames(names)
+  tw4: (palette, scales) => {
+    const keys = uniqueKebabNames(palette)
     return `@theme {\n${palette.map((_, i) =>
       SHADE_STEPS.map(step => `  --color-${keys[i]}-${step}: ${scales[i][step].oklch};`).join('\n')
     ).join('\n')}\n}`
   },
-  tw3: (palette, scales, names) => {
-    const keys = uniqueKebabNames(names)
+  tw3: (palette, scales) => {
+    const keys = uniqueKebabNames(palette)
     const obj = {}
     palette.forEach((_, i) => {
       obj[keys[i]] = Object.fromEntries(SHADE_STEPS.map(step => [step, scales[i][step].hex]))
     })
     return `colors: ${JSON.stringify(obj, null, 2)}`
   },
-  css: (palette, scales, names) => {
-    const keys = uniqueKebabNames(names)
+  css: (palette, scales) => {
+    const keys = uniqueKebabNames(palette)
     return `:root {\n${palette.map((_, i) =>
       SHADE_STEPS.map(step => `  --color-${keys[i]}-${step}: ${scales[i][step].hex};`).join('\n')
     ).join('\n')}\n}`
   },
-  json: (palette, scales, names) => {
-    const keys = uniqueKebabNames(names)
+  json: (palette, scales) => {
+    const keys = uniqueKebabNames(palette)
     const obj = {}
     palette.forEach((_, i) => {
       obj[keys[i]] = Object.fromEntries(SHADE_STEPS.map(step => [step, { hex: scales[i][step].hex, oklch: scales[i][step].oklch }]))
@@ -619,9 +651,10 @@ const EXPORT_FORMATS = {
 }
 const EXPORT_TABS = ['css', 'tw4', 'tw3', 'json', 'scss', 'custom']
 
-function buildExportCode(tab, palette, rolesMap, customTpl) {
+function buildExportCode(tab, palette, rolesMap, customTpl, namesOverride) {
   if (tab === 'custom') {
-    return palette.map((hex, i) => applyTemplate(customTpl, hex, i, rolesMap)).join('\n')
+    const names = namesOverride ?? getUniqueNames(palette)
+    return palette.map((hex, i) => applyTemplate(customTpl, hex, i, rolesMap, names[i])).join('\n')
   }
   return EXPORT_FORMATS[tab](palette, rolesMap)
 }
@@ -1157,8 +1190,10 @@ function PosterPreview({ palette, roles = {}, uiBg = 'light' }) {
   const posterText = uiBg === 'dark' ? primary  : bgColor
   const headingCol = uiBg === 'dark' ? bgColor  : bgColor
 
-  // Grab a color name from the palette for the second line
-  const accentName = getColorName(accent).toUpperCase()
+  // Grab a color name from the palette for the second line (deduplicated)
+  const _pNames  = getUniqueNames(palette, palette.map(h => hexToOklch(h)))
+  const _aIdx    = Object.entries(roles).find(([,r]) => r === 'accent')?.[0] ?? Math.min(3, palette.length - 1)
+  const accentName = (_pNames[+_aIdx] ?? getColorName(accent)).toUpperCase()
 
   return (
     <div className="poster" style={{ background: posterBg, position: 'relative', overflow: 'hidden' }}>
@@ -1202,6 +1237,7 @@ function BrandPreview({ palette, roles = {}, uiBg = 'light' }) {
   const pageBg   = uiBg === 'dark' ? textCol  : bgColor
   const pageText = uiBg === 'dark' ? bgColor  : textCol
   const cardBg   = uiBg === 'dark' ? ha(bgColor, 0.12) : bgColor
+  const _brandNames = getUniqueNames(palette, palette.map(h => hexToOklch(h)))
 
   return (
     <div className="brand-sheet" style={{ background: pageBg }}>
@@ -1220,7 +1256,7 @@ function BrandPreview({ palette, roles = {}, uiBg = 'light' }) {
           {palette.map((hex, i) => (
             <div key={i} className="brand-chip">
               <div className="brand-chip-circle" style={{ background: hex }} />
-              <span className="brand-chip-name" style={{ color: pageText }}>{getColorName(hex)}</span>
+              <span className="brand-chip-name" style={{ color: pageText }}>{_brandNames[i] ?? getColorName(hex)}</span>
               <span className="brand-chip-hex"  style={{ color: ha(muted, 0.7) }}>{hex}</span>
             </div>
           ))}
@@ -1765,10 +1801,9 @@ export default function App() {
     let text
     if (leftTab === 'scales') {
       const scalesData = palette.map(hex => generateScale(hex))
-      const names = palette.map(hex => getColorName(hex))
-      text = SCALE_EXPORT_FORMATS[scaleExportTab](palette, scalesData, names)
+      text = SCALE_EXPORT_FORMATS[scaleExportTab](palette, scalesData)
     } else {
-      text = buildExportCode(exportTab, palette, roles, customTemplate)
+      text = buildExportCode(exportTab, palette, roles, customTemplate, paletteNames)
     }
     navigator.clipboard.writeText(text)
     setCopied('export')
@@ -1777,7 +1812,7 @@ export default function App() {
 
   const downloadPNG = () => {
     if (!palette.length) return
-    const SW = 120, SH = 90, PAD = 8, LABEL_H = 14
+    const SW = 120, SH = 90, PAD = 8, LABEL_H = 26
     const canvas = document.createElement('canvas')
     canvas.width  = palette.length * SW
     canvas.height = SH + LABEL_H + PAD * 2
@@ -1794,6 +1829,10 @@ export default function App() {
       ctx.font = '10px monospace'
       ctx.textAlign = 'center'
       ctx.fillText(hex, x + (SW - PAD) / 2, PAD + SH - PAD)
+      const name = paletteNames[i] ?? getColorName(hex)
+      ctx.fillStyle = '#AAAAAA'
+      ctx.font = '9px sans-serif'
+      ctx.fillText(name, x + (SW - PAD) / 2, PAD + SH + 14)
     })
     const a = document.createElement('a')
     a.download = `palette-${Date.now()}.png`
@@ -1803,8 +1842,8 @@ export default function App() {
 
   const downloadTXT = () => {
     if (!palette.length) return
-    const lines = palette.map(hex => {
-      const name = getColorName(hex)
+    const lines = palette.map((hex, i) => {
+      const name = paletteNames[i] ?? getColorName(hex)
       const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16)
       return `${name}: ${hex} (RGB: ${r}, ${g}, ${b})`
     })
@@ -1829,6 +1868,11 @@ export default function App() {
     }
   }
 
+  // ── Deduplicated NTC color names ─────────────────────────────────────────
+  const paletteNames = palette.length > 0
+    ? getUniqueNames(palette, palette.map(hex => hexToOklch(hex)))
+    : []
+
   // ── Accessibility score ──────────────────────────────────────────────────
   // A color passes if it achieves AA (≥4.5:1) against either light or dark bg
   const passCount = palette.filter(hex =>
@@ -1846,7 +1890,7 @@ export default function App() {
 
   // ── Export code ──────────────────────────────────────────────────────────
   const exportCode = palette.length > 0 && leftTab !== 'scales'
-    ? buildExportCode(exportTab, palette, roles, customTemplate)
+    ? buildExportCode(exportTab, palette, roles, customTemplate, paletteNames)
     : ''
   const exportCodeHTML = exportCode && exportTab !== 'custom'
     ? renderCodeHTML(exportCode, exportTab)
@@ -1855,8 +1899,7 @@ export default function App() {
   const scaleExportCodeHTML = (() => {
     if (leftTab !== 'scales' || palette.length === 0) return ''
     const scalesData = palette.map(hex => generateScale(hex))
-    const names = palette.map(hex => getColorName(hex))
-    const code = SCALE_EXPORT_FORMATS[scaleExportTab](palette, scalesData, names)
+    const code = SCALE_EXPORT_FORMATS[scaleExportTab](palette, scalesData)
     let html = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     html = html.replace(/(#[0-9a-fA-F]{6})/g, '<span class="code-hex">$1</span>')
     html = html.replace(/(oklch\([^)]+\))/g, '<span class="code-hex">$1</span>')
@@ -2060,7 +2103,7 @@ export default function App() {
               {palette.length > 0 ? (
                 <div className="swatch-list">
                   {palette.map((hex, i) => {
-                    const name = getColorName(hex)
+                    const name = paletteNames[i] ?? getColorName(hex)
                     const contrast = getContrastRatio(hex, '#ffffff')
                     const level = contrast >= 7 ? 'AAA' : contrast >= 4.5 ? 'AA' : null
                     const isOpen = openSlider === i
@@ -2186,7 +2229,7 @@ export default function App() {
                 <div className="scales-view">
                   {palette.map((hex, i) => {
                     const scale = generateScale(hex)
-                    const name  = getColorName(hex)
+                    const name  = paletteNames[i] ?? getColorName(hex)
                     return (
                       <div key={i} className="scale-row-wrap">
                         <div className="scale-row-label">{name}</div>
