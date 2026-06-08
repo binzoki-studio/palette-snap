@@ -2207,7 +2207,7 @@ export default function App() {
             </label>
           )}
 
-          {inputMode === 'url' && !preview && (
+          {inputMode === 'url' && (
             <div className="url-mode">
               <div className="url-row-sm">
                 <input
