@@ -240,15 +240,9 @@ async function designSystemExtract(source, count, locks, currentPalette) {
   const pool = [...deduplicated]
   const used = new Set()
 
-  const pickFrom = (predicate, fallback) => {
-    const idx = pool.findIndex((c, i) => !used.has(i) && predicate(c))
-    if (idx !== -1) { used.add(idx); return pool[idx] }
-    if (fallback) { const fb = fallback(); return { hex: fb, oklch: hexToOklch(fb) } }
-    return null
-  }
-
   // Text: darkest with L < 0.35, else darken darkest to L=0.20
-  const sortedByL = [...pool].sort((a, b) => a.oklch.L - b.oklch.L)
+  const sortedByL    = [...pool].sort((a, b) => a.oklch.L - b.oklch.L)
+  const sortedByLDesc = [...pool].sort((a, b) => b.oklch.L - a.oklch.L)
   let textCandidate = pool.find((c, i) => !used.has(i) && c.oklch.L < 0.35)
   if (textCandidate) {
     used.add(pool.indexOf(textCandidate))
@@ -259,7 +253,6 @@ async function designSystemExtract(source, count, locks, currentPalette) {
   }
 
   // Background: lightest with L > 0.80, else lighten lightest to L=0.95, C≤0.03
-  const sortedByLDesc = [...pool].sort((a, b) => b.oklch.L - a.oklch.L)
   let bgIdx = pool.findIndex((c, i) => !used.has(i) && c.oklch.L > 0.80)
   let bgCandidate
   if (bgIdx !== -1) {
@@ -390,10 +383,10 @@ async function designSystemExtract(source, count, locks, currentPalette) {
     for (let j = i + 1; j < selected.length; j++) {
       if (oklchDistance(selected[i].oklch, selected[j].oklch) < 15) {
         // Replace the less-useful one (j) with next best unused pool candidate
-        const nextBest = pool.find((c, pi) => !used.has(pi) && pool.findIndex(p => p === c) !== -1)
-        if (nextBest) {
-          selected[j] = nextBest
-          used.add(pool.indexOf(nextBest))
+        const nextBestIdx = pool.findIndex((_, pi) => !used.has(pi))
+        if (nextBestIdx !== -1) {
+          selected[j] = pool[nextBestIdx]
+          used.add(nextBestIdx)
         }
       }
     }
@@ -772,6 +765,36 @@ function LandingPreview({ palette, roles = {}, uiBg = 'light' }) {
         ))}
       </section>
 
+      {/* Pricing section */}
+      <section className="lp-pricing" style={{ background: pageBg }}>
+        <h2 className="lp-section-heading" style={{ color: pageText }}>Simple pricing</h2>
+        <div className="lp-pricing-card" style={{ background: surface, border: `1px solid ${ha(border, 0.40)}` }}>
+          <div className="lp-price" style={{ color: primary }}>$12<span className="lp-price-unit" style={{ color: ha(muted, 0.8) }}>/mo</span></div>
+          <ul className="lp-feature-list">
+            {['Unlimited palettes', 'All export formats', 'Priority support', 'Team sharing'].map(f => (
+              <li key={f} className="lp-feature-item">
+                <span className="lp-check" style={{ color: accent }}>✓</span>
+                <span style={{ color: ha(pageText, 0.80) }}>{f}</span>
+              </li>
+            ))}
+          </ul>
+          <button className="lp-btn-primary" style={{ background: primary, color: primaryFg, width: '100%' }}>
+            Get Started
+          </button>
+        </div>
+      </section>
+
+      {/* Newsletter section */}
+      <section className="lp-newsletter" style={{ background: ha(muted, 0.08) }}>
+        <h2 className="lp-section-heading" style={{ color: pageText }}>Stay in the loop</h2>
+        <p className="lp-subtext" style={{ color: ha(pageText, 0.55) }}>Design tips and palette inspiration, weekly.</p>
+        <div className="lp-newsletter-row">
+          <input readOnly className="lp-newsletter-input" placeholder="you@example.com"
+            style={{ border: `1px solid ${ha(border, 0.55)}`, color: ha(pageText, 0.7), background: surface }} />
+          <button className="lp-newsletter-btn" style={{ background: primary, color: primaryFg }}>Subscribe</button>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="lp-footer" style={{ background: darkest }}>
         <span className="lp-footer-dot" style={{ background: primary }} />
@@ -780,6 +803,338 @@ function LandingPreview({ palette, roles = {}, uiBg = 'light' }) {
 
       {/* Scroll hint */}
       <div className="lp-scroll-hint" style={{ color: ha(pageText, 0.30) }}>scroll to see more ↓</div>
+    </div>
+  )
+}
+
+// ── Shared byRole helper factory ─────────────────────────────────────────────
+function makeByRole(palette, roles) {
+  return (role, fallbackIdx = 0) => {
+    const entry = Object.entries(roles).find(([, r]) => r === role)
+    return entry ? (palette[+entry[0]] ?? palette[fallbackIdx]) : palette[Math.min(fallbackIdx, palette.length - 1)]
+  }
+}
+
+// ── Dashboard preview ─────────────────────────────────────────────────────────
+function DashboardPreview({ palette, roles = {}, uiBg = 'light' }) {
+  if (!palette.length) return <div className="lp-empty">Load an image to see a preview</div>
+  const byRole = makeByRole(palette, roles)
+  const bgColor  = byRole('background', palette.length - 1)
+  const textCol  = byRole('text',       0)
+  const primary  = byRole('primary',    Math.min(1, palette.length - 1))
+  const secondary= byRole('secondary',  Math.min(2, palette.length - 1))
+  const accent   = byRole('accent',     Math.min(3, palette.length - 1))
+  const surface  = byRole('surface',    Math.min(4, palette.length - 1))
+  const muted    = byRole('muted',      Math.min(5, palette.length - 1))
+  const border   = byRole('border',     Math.min(6, palette.length - 1))
+  const pageBg   = uiBg === 'dark' ? textCol  : bgColor
+  const pageText = uiBg === 'dark' ? bgColor  : textCol
+  const primaryFg = readableText(primary)
+
+  const navItems = ['Overview', 'Analytics', 'Projects', 'Team', 'Settings']
+  const stats = [
+    { label: 'Total Users',   value: '12,480', trend: '+12%' },
+    { label: 'Revenue',       value: '$48.2k', trend: '+8%'  },
+    { label: 'Active Now',    value: '1,294',  trend: '+3%'  },
+    { label: 'Conversion',    value: '3.6%',   trend: '-1%'  },
+  ]
+  const barHeights = [55, 72, 48, 88, 63, 79, 92, 41]
+
+  return (
+    <div className="db" style={{ background: pageBg }}>
+      {/* Sidebar */}
+      <aside className="db-sidebar" style={{ background: surface, borderRight: `1px solid ${ha(border, 0.5)}` }}>
+        <div className="db-logo" style={{ borderBottom: `1px solid ${ha(border, 0.4)}` }}>
+          <span className="db-logo-dot" style={{ background: primary }} />
+          <span className="db-logo-name" style={{ color: pageText }}>Workspace</span>
+        </div>
+        {navItems.map((item, i) => (
+          <div key={item} className={`db-nav-item ${i === 0 ? 'db-nav-item--active' : ''}`}
+            style={{
+              borderLeft: `2.5px solid ${i === 0 ? primary : 'transparent'}`,
+              background: i === 0 ? ha(primary, 0.10) : 'transparent',
+            }}>
+            <span className="db-nav-dot" style={{ background: i === 0 ? primary : ha(pageText, 0.3) }} />
+            <span className="db-nav-label" style={{ color: i === 0 ? pageText : ha(pageText, 0.55) }}>{item}</span>
+          </div>
+        ))}
+      </aside>
+
+      {/* Main content */}
+      <div className="db-main">
+        {/* Header */}
+        <div className="db-header" style={{ borderBottom: `1px solid ${ha(border, 0.35)}` }}>
+          <span className="db-page-title" style={{ color: pageText }}>Overview</span>
+          <div className="db-header-right">
+            <button className="db-header-btn" style={{ background: primary, color: primaryFg }}>New Report</button>
+            <span className="db-avatar" style={{ background: accent }} />
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div className="db-stats">
+          {stats.map(({ label, value, trend }, i) => (
+            <div key={label} className="db-stat-card"
+              style={{ background: surface, border: `1px solid ${ha(border, 0.35)}` }}>
+              <span className="db-stat-value" style={{ color: pageText }}>{value}</span>
+              <span className="db-stat-label" style={{ color: ha(muted, 0.8) }}>{label}</span>
+              <span className="db-stat-trend" style={{ color: i < 3 ? accent : secondary }}>{trend}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Chart */}
+        <div className="db-chart-card" style={{ background: surface, border: `1px solid ${ha(border, 0.35)}` }}>
+          <span className="db-chart-title" style={{ color: ha(pageText, 0.7) }}>Monthly Activity</span>
+          <div className="db-chart">
+            <div className="db-chart-bars">
+              {barHeights.map((h, i) => (
+                <div key={i} className="db-bar-wrap">
+                  <div className="db-bar"
+                    style={{ height: `${h}%`, background: i % 2 === 0 ? primary : secondary }} />
+                </div>
+              ))}
+            </div>
+            <div className="db-chart-baseline" style={{ background: ha(border, 0.5) }} />
+          </div>
+        </div>
+
+        {/* Bottom row */}
+        <div className="db-bottom">
+          {[
+            { title: 'Recent Activity', items: ['Homepage redesign', 'API integration', 'User research', 'Sprint planning'] },
+            { title: 'Upcoming Tasks',  items: ['Design review',    'Staging deploy',  'QA testing',    'Client demo']      },
+          ].map(({ title, items }, ci) => (
+            <div key={title} className="db-list-card"
+              style={{ background: surface, border: `1px solid ${ha(border, 0.35)}` }}>
+              <span className="db-list-title" style={{ color: pageText }}>{title}</span>
+              {items.map((item, ii) => (
+                <div key={item} className="db-list-item">
+                  <span className="db-list-dot" style={{
+                    background: [primary, accent, secondary, muted][ii % 4],
+                  }} />
+                  <span className="db-list-text" style={{ color: ha(pageText, 0.75) }}>{item}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Poster preview ────────────────────────────────────────────────────────────
+function PosterPreview({ palette, roles = {}, uiBg = 'light' }) {
+  if (!palette.length) return <div className="lp-empty">Load an image to see a preview</div>
+  const byRole = makeByRole(palette, roles)
+  const bgColor  = byRole('background', palette.length - 1)
+  const primary  = byRole('primary',    Math.min(1, palette.length - 1))
+  const secondary= byRole('secondary',  Math.min(2, palette.length - 1))
+  const accent   = byRole('accent',     Math.min(3, palette.length - 1))
+  const muted    = byRole('muted',      Math.min(5, palette.length - 1))
+
+  const posterBg   = uiBg === 'dark' ? primary  : primary
+  const posterText = uiBg === 'dark' ? primary  : bgColor
+  const headingCol = uiBg === 'dark' ? bgColor  : bgColor
+
+  // Grab a color name from the palette for the second line
+  const accentName = getColorName(accent).toUpperCase()
+
+  return (
+    <div className="poster" style={{ background: posterBg, position: 'relative', overflow: 'hidden' }}>
+      {/* Geometric shapes */}
+      <div className="poster-circle-large" style={{ background: ha(secondary, 0.70) }} />
+      <div className="poster-rect"         style={{ background: ha(accent,    0.80) }} />
+      <div className="poster-circle-small" style={{ background: ha(muted,     0.60) }} />
+
+      {/* Top label */}
+      <div className="poster-brand" style={{ color: ha(headingCol, 0.65) }}>PaletteSnap</div>
+
+      {/* Main text */}
+      <div className="poster-content">
+        <div className="poster-heading" style={{ color: headingCol }}>DESIGN<br/>SYSTEM</div>
+        <div className="poster-subheading" style={{ color: accent }}>{accentName}</div>
+      </div>
+
+      {/* Bottom color strip */}
+      <div className="poster-strip" style={{ background: bgColor }}>
+        {palette.map((hex, i) => (
+          <div key={i} className="poster-strip-block" style={{ background: hex, flex: 1 }}>
+            <span className="poster-strip-hex" style={{ color: readableText(hex) }}>{hex}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Brand preview ─────────────────────────────────────────────────────────────
+function BrandPreview({ palette, roles = {}, uiBg = 'light' }) {
+  if (!palette.length) return <div className="lp-empty">Load an image to see a preview</div>
+  const byRole = makeByRole(palette, roles)
+  const bgColor  = byRole('background', palette.length - 1)
+  const textCol  = byRole('text',       0)
+  const primary  = byRole('primary',    Math.min(1, palette.length - 1))
+  const secondary= byRole('secondary',  Math.min(2, palette.length - 1))
+  const accent   = byRole('accent',     Math.min(3, palette.length - 1))
+  const muted    = byRole('muted',      Math.min(5, palette.length - 1))
+
+  const pageBg   = uiBg === 'dark' ? textCol  : bgColor
+  const pageText = uiBg === 'dark' ? bgColor  : textCol
+  const cardBg   = uiBg === 'dark' ? ha(bgColor, 0.12) : bgColor
+
+  return (
+    <div className="brand-sheet" style={{ background: pageBg }}>
+      {/* Top 60% — logo + color chips */}
+      <div className="brand-top">
+        {/* Logo lockup */}
+        <div className="brand-logo-section">
+          <div className="brand-logo-mark" style={{ background: primary, borderRadius: 14 }} />
+          <div className="brand-logo-text-wrap">
+            <span className="brand-name" style={{ color: pageText }}>Brand</span>
+            <span className="brand-tagline" style={{ color: ha(muted, 0.85) }}>Design meets purpose</span>
+          </div>
+        </div>
+        {/* Color chips */}
+        <div className="brand-chips">
+          {palette.map((hex, i) => (
+            <div key={i} className="brand-chip">
+              <div className="brand-chip-circle" style={{ background: hex }} />
+              <span className="brand-chip-name" style={{ color: pageText }}>{getColorName(hex)}</span>
+              <span className="brand-chip-hex"  style={{ color: ha(muted, 0.7) }}>{hex}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom 40% — primary bg */}
+      <div className="brand-bottom" style={{ background: primary }}>
+        {/* Business card mockup */}
+        <div className="brand-card" style={{ background: cardBg }}>
+          <div className="brand-card-logo">
+            <span className="brand-card-dot" style={{ background: primary }} />
+            <span className="brand-card-co" style={{ color: pageText }}>Brand Name</span>
+          </div>
+          <span className="brand-card-email" style={{ color: ha(muted, 0.8) }}>hello@brand.co</span>
+        </div>
+        {/* Watermark */}
+        <div className="brand-watermark">
+          <span style={{ color: ha(bgColor, 0.22), fontFamily: 'DM Mono', fontWeight: 700 }}>
+            PALETTE
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Cards preview ─────────────────────────────────────────────────────────────
+function CardsPreview({ palette, roles = {}, uiBg = 'light' }) {
+  if (!palette.length) return <div className="lp-empty">Load an image to see a preview</div>
+  const byRole = makeByRole(palette, roles)
+  const bgColor  = byRole('background', palette.length - 1)
+  const textCol  = byRole('text',       0)
+  const primary  = byRole('primary',    Math.min(1, palette.length - 1))
+  const secondary= byRole('secondary',  Math.min(2, palette.length - 1))
+  const accent   = byRole('accent',     Math.min(3, palette.length - 1))
+  const surface  = byRole('surface',    Math.min(4, palette.length - 1))
+  const muted    = byRole('muted',      Math.min(5, palette.length - 1))
+  const border   = byRole('border',     Math.min(6, palette.length - 1))
+
+  const pageBg   = uiBg === 'dark' ? textCol  : bgColor
+  const pageText = uiBg === 'dark' ? bgColor  : textCol
+  const primaryFg = readableText(primary)
+  const secondaryFg = readableText(secondary)
+  const accentFg = readableText(accent)
+
+  // Derive a warning-ish color from secondary and error-ish from a warm hue
+  const { L: sL, C: sC, H: sH } = hexToOklch(secondary)
+  const warnCol  = oklchToHex(sL, sC * 0.9, ((sH + 30) % 360))
+  const errorCol = oklchToHex(Math.max(0.35, sL * 0.9), Math.max(sC, 0.12), 25) // red-ish
+
+  return (
+    <div className="cv" style={{ background: pageBg }}>
+      <div className="cv-grid">
+
+        {/* Buttons row */}
+        <div className="cv-section-label" style={{ color: ha(muted, 0.7) }}>Buttons</div>
+        <div className="cv-row">
+          <button className="cv-btn" style={{ background: primary,   color: primaryFg,   border: 'none' }}>Primary</button>
+          <button className="cv-btn cv-btn--outline" style={{ border: `1.5px solid ${secondary}`, color: secondary, background: 'transparent' }}>Secondary</button>
+          <button className="cv-btn" style={{ background: ha(pageText, 0.10), color: ha(pageText, 0.35), border: 'none' }}>Disabled</button>
+          <button className="cv-btn cv-btn--icon" style={{ background: accent, color: accentFg, border: 'none' }}>✦</button>
+        </div>
+
+        {/* Inputs row */}
+        <div className="cv-section-label" style={{ color: ha(muted, 0.7) }}>Inputs</div>
+        <div className="cv-row">
+          <input readOnly className="cv-input" placeholder="Default input"
+            style={{ border: `1px solid ${ha(border, 0.6)}`, color: pageText, background: surface }} />
+          <input readOnly className="cv-input cv-input--focused" placeholder="Focused"
+            style={{ border: `1.5px solid ${primary}`, color: pageText, background: surface,
+              boxShadow: `0 0 0 3px ${ha(primary, 0.18)}` }} />
+          <input readOnly className="cv-input" placeholder="Error state"
+            style={{ border: `1.5px solid ${errorCol}`, color: pageText, background: surface }} />
+        </div>
+
+        {/* Badges row */}
+        <div className="cv-section-label" style={{ color: ha(muted, 0.7) }}>Badges</div>
+        <div className="cv-row">
+          {[
+            { label: 'Primary',   bg: primary,   fg: primaryFg   },
+            { label: 'Secondary', bg: secondary,  fg: secondaryFg },
+            { label: 'Accent',    bg: accent,     fg: accentFg    },
+            { label: 'Outlined',  bg: 'transparent', fg: border, outline: border },
+          ].map(({ label, bg, fg, outline }) => (
+            <span key={label} className="cv-badge"
+              style={{ background: bg, color: fg,
+                border: outline ? `1px solid ${outline}` : 'none' }}>
+              {label}
+            </span>
+          ))}
+        </div>
+
+        {/* Alerts row */}
+        <div className="cv-section-label" style={{ color: ha(muted, 0.7) }}>Alerts</div>
+        <div className="cv-alerts">
+          {[
+            { label: 'Success — Operation completed',  color: accent    },
+            { label: 'Warning — Review required',      color: warnCol   },
+            { label: 'Error — Something went wrong',   color: errorCol  },
+            { label: 'Info — Update available',        color: primary   },
+          ].map(({ label, color }) => (
+            <div key={label} className="cv-alert"
+              style={{ background: surface, borderLeft: `3px solid ${color}`,
+                border: `1px solid ${ha(border, 0.35)}`, borderLeftWidth: 3 }}>
+              <span className="cv-alert-dot" style={{ background: color }} />
+              <span className="cv-alert-text" style={{ color: pageText }}>{label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Cards row */}
+        <div className="cv-section-label" style={{ color: ha(muted, 0.7) }}>Cards</div>
+        <div className="cv-row">
+          {[
+            { strip: primary,   title: 'Primary Card',   body: 'This card uses the primary role for its accent strip and CTA.' },
+            { strip: secondary, title: 'Secondary Card',  body: 'Secondary color provides contrast while staying harmonious.' },
+          ].map(({ strip, title, body }) => (
+            <div key={title} className="cv-card"
+              style={{ background: surface, border: `1px solid ${ha(border, 0.4)}` }}>
+              <div className="cv-card-strip" style={{ background: strip }} />
+              <div className="cv-card-body">
+                <span className="cv-card-title" style={{ color: pageText }}>{title}</span>
+                <span className="cv-card-desc"  style={{ color: ha(muted, 0.8) }}>{body}</span>
+                <button className="cv-card-btn" style={{ background: strip, color: readableText(strip), border: 'none' }}>
+                  Learn more
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+      </div>
     </div>
   )
 }
@@ -870,6 +1225,9 @@ export default function App() {
 
   // ── Sprint 2.7 state ─────────────────────────────────────────────────────
   const [extractionInfo, setExtractionInfo] = useState(null) // { candidates, selected }
+
+  // ── Sprint 2.8 state ─────────────────────────────────────────────────────
+  const [previewTemplate, setPreviewTemplate] = useState('landing')
 
   // ── Panel resize state ───────────────────────────────────────────────────
   const [panelWidths, setPanelWidthsState] = useState({ left: 340, right: 280 })
@@ -1692,7 +2050,23 @@ export default function App() {
             <div className="preview-full">
               {/* Preview toolbar */}
               <div className="preview-toolbar">
-                <span className="panel-label">PREVIEW</span>
+                {/* Template switcher pills */}
+                <div className="preview-tpl-switcher">
+                  {[
+                    { id: 'landing',   label: 'landing'   },
+                    { id: 'dashboard', label: 'dashboard' },
+                    { id: 'poster',    label: 'poster'    },
+                    { id: 'brand',     label: 'brand'     },
+                    { id: 'cards',     label: 'cards'     },
+                  ].map(({ id, label }) => (
+                    <button
+                      key={id}
+                      className={`preview-tpl-pill ${previewTemplate === id ? 'preview-tpl-pill--active' : ''}`}
+                      onClick={() => setPreviewTemplate(id)}
+                    >{label}</button>
+                  ))}
+                </div>
+                {/* Light/dark toggle */}
                 <button
                   className={`preview-toolbar-btn ${uiBg === 'dark' ? 'preview-toolbar-btn--active' : ''}`}
                   onClick={() => setUiBg(b => b === 'light' ? 'dark' : 'light')}
@@ -1712,7 +2086,13 @@ export default function App() {
               {/* Preview content with vision filter */}
               <div className="preview-scroll" style={activePanelFilter}>
                 {palette.length > 0 ? (
-                  <LandingPreview palette={palette} roles={roles} uiBg={uiBg} />
+                  <>
+                    {previewTemplate === 'landing'   && <LandingPreview   palette={palette} roles={roles} uiBg={uiBg} />}
+                    {previewTemplate === 'dashboard' && <DashboardPreview palette={palette} roles={roles} uiBg={uiBg} />}
+                    {previewTemplate === 'poster'    && <PosterPreview    palette={palette} roles={roles} uiBg={uiBg} />}
+                    {previewTemplate === 'brand'     && <BrandPreview     palette={palette} roles={roles} uiBg={uiBg} />}
+                    {previewTemplate === 'cards'     && <CardsPreview     palette={palette} roles={roles} uiBg={uiBg} />}
+                  </>
                 ) : (
                   <div className="preview-placeholder">
                     <span>Drop an image to see your palette in context</span>

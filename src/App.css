@@ -1884,3 +1884,630 @@
   flex-shrink: 0;
   letter-spacing: 0.02em;
 }
+
+/* ══════════════════════════════════════════════════════════
+   Sprint 2.8 — Preview template switcher
+   ══════════════════════════════════════════════════════════ */
+
+/* Toolbar updated: pills on left, toggle on right */
+.preview-tpl-switcher {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  overflow: hidden;
+}
+
+.preview-tpl-pill {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #4A4A54;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+.preview-tpl-pill:hover { color: #9A9AA4; }
+.preview-tpl-pill--active {
+  background: #2E2E34;
+  border-color: #3E3E46;
+  color: #E8E8E6;
+}
+
+/* ── Landing: pricing + newsletter additions ─────────────── */
+.lp-pricing {
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+.lp-section-heading {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-align: center;
+  margin: 0;
+}
+.lp-pricing-card {
+  width: 100%;
+  max-width: 280px;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.lp-price {
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.lp-price-unit {
+  font-size: 1rem;
+  font-weight: 400;
+}
+.lp-feature-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lp-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+.lp-check {
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.lp-newsletter {
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.lp-newsletter-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 340px;
+}
+.lp-newsletter-input {
+  flex: 1;
+  font-family: inherit;
+  font-size: 0.82rem;
+  padding: 8px 12px;
+  border-radius: 7px;
+  outline: none;
+}
+.lp-newsletter-btn {
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ── Dashboard template ──────────────────────────────────── */
+.db {
+  display: flex;
+  min-height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+.db-sidebar {
+  width: 168px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+.db-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 14px 12px;
+  margin-bottom: 4px;
+}
+.db-logo-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.db-logo-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.db-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.db-nav-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.db-nav-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+.db-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.db-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  flex-shrink: 0;
+}
+.db-page-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.db-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.db-header-btn {
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.db-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.db-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 12px 16px 8px;
+  flex-shrink: 0;
+}
+.db-stat-card {
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.db-stat-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.db-stat-label {
+  font-size: 0.68rem;
+  font-weight: 500;
+}
+.db-stat-trend {
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+.db-chart-card {
+  margin: 0 16px 8px;
+  border-radius: 8px;
+  padding: 12px;
+  flex-shrink: 0;
+}
+.db-chart-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 10px;
+}
+.db-chart {
+  position: relative;
+  height: 80px;
+}
+.db-chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 100%;
+}
+.db-bar-wrap {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+.db-bar {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  transition: height 0.2s ease;
+}
+.db-chart-baseline {
+  height: 1px;
+  width: 100%;
+}
+.db-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 0 16px 12px;
+  flex: 1;
+  min-height: 0;
+}
+.db-list-card {
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.db-list-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 4px;
+}
+.db-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.db-list-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.db-list-text {
+  font-size: 0.72rem;
+}
+
+/* ── Poster template ─────────────────────────────────────── */
+.poster {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+.poster-brand {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  z-index: 2;
+}
+.poster-circle-large {
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  top: -60px;
+  right: -60px;
+  z-index: 1;
+}
+.poster-rect {
+  position: absolute;
+  width: 120px;
+  height: 80px;
+  border-radius: 10px;
+  bottom: 80px;
+  left: -20px;
+  z-index: 1;
+}
+.poster-circle-small {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  top: 45%;
+  left: 12%;
+  z-index: 1;
+}
+.poster-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 32px 40px;
+  position: relative;
+  z-index: 2;
+  text-align: center;
+}
+.poster-heading {
+  font-size: 3.6rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.0;
+  margin-bottom: 16px;
+}
+.poster-subheading {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.poster-strip {
+  display: flex;
+  height: 56px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+.poster-strip-block {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 5px;
+  min-width: 0;
+}
+.poster-strip-hex {
+  font-family: 'DM Mono', monospace;
+  font-size: 7px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+
+/* ── Brand template ──────────────────────────────────────── */
+.brand-sheet {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+.brand-top {
+  flex: 0 0 60%;
+  padding: 28px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.brand-logo-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.brand-logo-mark {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+.brand-logo-text-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.brand-name {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+.brand-tagline {
+  font-size: 0.82rem;
+  font-weight: 400;
+}
+.brand-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.brand-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.brand-chip-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.brand-chip-name {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-align: center;
+  max-width: 56px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.brand-chip-hex {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.62rem;
+  text-align: center;
+}
+.brand-bottom {
+  flex: 1;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.brand-card {
+  border-radius: 10px;
+  padding: 16px 20px;
+  width: 180px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+.brand-card-logo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.brand-card-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+}
+.brand-card-co {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.brand-card-email {
+  font-size: 0.72rem;
+}
+.brand-watermark {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.brand-watermark span {
+  font-size: 5rem;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* ── Cards template ──────────────────────────────────────── */
+.cv {
+  min-height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+.cv-grid {
+  padding: 20px 20px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.cv-section-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+.cv-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.cv-btn {
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.cv-btn--icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+.cv-input {
+  font-family: inherit;
+  font-size: 0.75rem;
+  padding: 7px 10px;
+  border-radius: 7px;
+  outline: none;
+  width: 140px;
+}
+.cv-badge {
+  font-family: inherit;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+.cv-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cv-alert {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+  border-radius: 7px;
+}
+.cv-alert-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cv-alert-text {
+  font-size: 0.75rem;
+}
+.cv-card {
+  flex: 1;
+  min-width: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.cv-card-strip {
+  height: 6px;
+  flex-shrink: 0;
+}
+.cv-card-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.cv-card-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.cv-card-desc {
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+.cv-card-btn {
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  align-self: flex-start;
+  margin-top: 4px;
+}
