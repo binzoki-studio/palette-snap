@@ -1561,6 +1561,7 @@ export default function App() {
   // ── Sprint 2.5 state ─────────────────────────────────────────────────────
   const [leftTab, setLeftTab]           = useState('swatches') // 'swatches' | 'scales'
   const [showContrast, setShowContrast] = useState(false)
+  const [visionOpen, setVisionOpen]     = useState(true)
   const [exportOpen, setExportOpen]     = useState(true)
 
   // ── Sprint 2.6 state ─────────────────────────────────────────────────────
@@ -2544,20 +2545,28 @@ export default function App() {
 
           {/* ── Vision simulate ── */}
           <div className="accord-section">
-            <div className="accord-header" style={{ cursor: 'default' }}>
+            <button className="accord-header" onClick={() => setVisionOpen(o => !o)}>
               <span className="panel-label">VISION · SIMULATE</span>
-            </div>
-            <div className="accord-body">
-              <div className="vision-pills">
-                {Object.keys(VISION_FILTERS).map(m => (
-                  <button
-                    key={m}
-                    className={`vision-pill ${visionMode === m ? 'vision-pill--active' : ''}`}
-                    onClick={() => setVisionMode(m)}
-                  >{m}</button>
-                ))}
+              <svg
+                className={`accord-chevron ${visionOpen ? 'accord-chevron--open' : ''}`}
+                width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"
+              >
+                <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {visionOpen && (
+              <div className="accord-body">
+                <div className="vision-pills">
+                  {Object.keys(VISION_FILTERS).map(m => (
+                    <button
+                      key={m}
+                      className={`vision-pill ${visionMode === m ? 'vision-pill--active' : ''}`}
+                      onClick={() => setVisionMode(m)}
+                    >{m}</button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* ── Export accordion (open by default) ── */}
