@@ -335,6 +335,28 @@
 }
 .panel-action:hover { color: var(--app-muted); }
 
+.dice-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--app-border);
+  border-radius: 6px;
+  color: var(--app-inactive);
+  padding: 3px;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+  flex-shrink: 0;
+}
+.dice-btn:hover:not(:disabled) {
+  color: var(--app-text);
+  border-color: var(--app-border-hi);
+  background: var(--app-subtle);
+}
+.dice-btn:disabled { opacity: 0.35; cursor: default; }
+
 .panel-badge {
   font-family: 'DM Mono', monospace;
   font-size: 10px;

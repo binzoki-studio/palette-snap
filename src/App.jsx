@@ -1818,6 +1818,57 @@ export default function App() {
     setUrlError(null)
   }
 
+  // ── Random image from Unsplash ───────────────────────────────────────────
+  const UNSPLASH_PICKS = [
+    '1506905925346-21bda4d32df4', // mountain lake
+    '1531366936337-7c912a4589a7', // northern lights
+    '1501854140801-50d01698950b', // canyon
+    '1470071459604-3b5ec3a7fe05', // misty forest
+    '1439853949212-36089657c0e0', // glacier
+    '1493246507139-91e8fad9978e', // autumn forest
+    '1477959858617-67f85cf4f1df', // city at night
+    '1519500099198-fd81846b8f03', // Tokyo neon
+    '1508193638397-1c4234db14d8', // Santorini
+    '1465146344425-f00d5f5c8f07', // orange poppy field
+    '1516912481808-3406841bd33c', // snowy pine forest
+    '1519681393784-d120267933ba', // milky way over mountains
+    '1490750967868-88df5691cc2e', // cherry blossoms
+    '1518020382113-a7e8fc38eac9', // Burano colorful houses
+    '1445991842-2fc28a84f49a',    // Sahara dunes
+    '1504701954957-2010ec3bcec1', // tropical turquoise water
+    '1423345010-b8ebc7a484b1',    // autumn path
+    '1478827536114-da961b7f86d2', // golden sunset
+    '1552083375-1447ce886485',    // rainy night neon
+    '1496442226666-8d4d0e62e6e9', // New York avenue
+    '1501594907352-04cda38ebc29', // Golden Gate Bridge
+    '1444723121867-7a241cacace9', // Tokyo at dawn
+    '1502602898657-3e91760cbb34', // Paris Eiffel
+    '1513635269975-59663e0ac1ad', // London bridge
+    '1534430480872-3498386e7856', // SF bay
+  ]
+
+  const handleRandomImage = async () => {
+    setUrlError(null)
+    setUrlLoading(true)
+    const id  = UNSPLASH_PICKS[Math.floor(Math.random() * UNSPLASH_PICKS.length)]
+    const url = `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=1200&q=80`
+    try {
+      const res = await fetch(url, { mode: 'cors' })
+      if (!res.ok) throw new Error(`http-${res.status}`)
+      const ct = (res.headers.get('content-type') || '').split(';')[0].trim()
+      if (!ct.startsWith('image/')) throw new Error('not-image')
+      const blob    = await res.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      setPreview(blobUrl)
+      setPalette([]); setLocks(new Set()); setOpenSlider(null); setUrlError(null)
+      if (!imageOpen) setImageOpen(true)
+    } catch (err) {
+      setUrlError('Could not load a random image. Check your connection and try again.')
+    } finally {
+      setUrlLoading(false)
+    }
+  }
+
   // ── Color count ──────────────────────────────────────────────────────────
   const activeLocksCount = [...locks].filter(i => i < colorCount).length
   const canDecrement = colorCount > 3 && (colorCount - 1) >= activeLocksCount
@@ -2129,6 +2180,22 @@ export default function App() {
           <div className="accord-section">
             <button className="accord-header" onClick={() => setImageOpen(o => !o)}>
               <span className="panel-label">IMAGE</span>
+              {/* Dice: load random Unsplash photo */}
+              <button
+                className="dice-btn"
+                onClick={e => { e.stopPropagation(); handleRandomImage() }}
+                title="Load random image"
+                disabled={urlLoading}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="2" y="2" width="20" height="20" rx="4" ry="4" stroke="currentColor" strokeWidth="1.8"/>
+                  <circle cx="8"  cy="8"  r="1.5" fill="currentColor"/>
+                  <circle cx="16" cy="8"  r="1.5" fill="currentColor"/>
+                  <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+                  <circle cx="8"  cy="16" r="1.5" fill="currentColor"/>
+                  <circle cx="16" cy="16" r="1.5" fill="currentColor"/>
+                </svg>
+              </button>
               {preview && !imageOpen && (
                 <button
                   className="panel-action"
