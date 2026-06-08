@@ -931,7 +931,7 @@ function DashboardPreview({ palette, roles = {}, uiBg = 'light' }) {
     <div className="db2" style={{ background: pageBg }}>
 
       {/* ── Sidebar ──────────────────────────────────────────── */}
-      <aside className="db2-sidebar" style={{ background: ha(pageText, 0.06), borderRadius: 20 }}>
+      <aside className="db2-sidebar" style={{ background: ha(pageText, 0.10), borderRadius: 20 }}>
         <div className="db2-sb-avatar" style={{ background: primary }}>
           <span style={{ color: readableText(primary), fontSize: 9, fontWeight: 700 }}>PS</span>
         </div>
@@ -945,13 +945,13 @@ function DashboardPreview({ palette, roles = {}, uiBg = 'light' }) {
           { icon: '$', active: false },
         ].map(({ icon, active }, i) => (
           <div key={i} className="db2-sb-icon" style={{
-            color:      active ? pageText       : ha(pageText, 0.32),
-            background: active ? ha(pageText, 0.10) : 'transparent',
+            color:      active ? pageText       : ha(pageText, 0.50),
+            background: active ? ha(pageText, 0.14) : 'transparent',
           }}>{icon}</div>
         ))}
         <div style={{ flex: 1 }} />
         {['⚙','◉','✉'].map((icon, i) => (
-          <div key={i} className="db2-sb-icon" style={{ color: ha(pageText, 0.28) }}>{icon}</div>
+          <div key={i} className="db2-sb-icon" style={{ color: ha(pageText, 0.45) }}>{icon}</div>
         ))}
       </aside>
 
@@ -1050,8 +1050,8 @@ function DashboardPreview({ palette, roles = {}, uiBg = 'light' }) {
             ))}
           </div>
           <div className="db2-cal-tickers" style={{ borderTop: `1px solid ${ha(accentFg, 0.15)}` }}>
-            {['0.34 BNB','1.9 SOL','0.09 BTC','0.8 ETH'].map(t => (
-              <span key={t} style={{ color: ha(accentFg, 0.68), fontFamily: 'DM Mono, monospace', fontSize: 7 }}>{t}</span>
+            {['BTC 0.09','ETH 0.80'].map(t => (
+              <span key={t} style={{ color: ha(accentFg, 0.72), fontFamily: 'DM Mono, monospace', fontSize: 9 }}>{t}</span>
             ))}
           </div>
         </div>
@@ -1273,11 +1273,26 @@ function BrandPreview({ palette, roles = {}, uiBg = 'light' }) {
           </div>
           <span className="brand-card-email" style={{ color: ha(muted, 0.8) }}>hello@brand.co</span>
         </div>
-        {/* Watermark */}
-        <div className="brand-watermark">
-          <span style={{ color: ha(bgColor, 0.22), fontFamily: 'DM Mono', fontWeight: 700 }}>
-            PALETTE
-          </span>
+
+        {/* Right side: type specimen + usage pairs */}
+        <div className="brand-bottom-right">
+          {/* Type specimen */}
+          <div className="brand-type-row" style={{ borderBottom: `1px solid ${ha(bgColor, 0.18)}`, paddingBottom: 10, marginBottom: 10 }}>
+            <span style={{ color: ha(bgColor, 0.45), fontSize: '0.6rem', fontFamily: 'DM Mono, monospace', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Typography</span>
+            <div style={{ color: bgColor, fontSize: '1.6rem', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1 }}>Aa</div>
+            <div style={{ color: ha(bgColor, 0.70), fontSize: '0.75rem', fontWeight: 400, lineHeight: 1.4 }}>Bb Cc Dd Ee Ff</div>
+          </div>
+          {/* Usage pairs */}
+          <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ flex: 1, background: bgColor, borderRadius: 7, padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ color: ha(primary, 0.50), fontSize: '0.55rem', fontFamily: 'DM Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.08em' }}>On Light</span>
+              <span style={{ color: primary, fontSize: '0.75rem', fontWeight: 700 }}>Primary</span>
+            </div>
+            <div style={{ flex: 1, background: ha(bgColor, 0.15), border: `1px solid ${ha(bgColor, 0.30)}`, borderRadius: 7, padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ color: ha(bgColor, 0.50), fontSize: '0.55rem', fontFamily: 'DM Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.08em' }}>On Dark</span>
+              <span style={{ color: bgColor, fontSize: '0.75rem', fontWeight: 700 }}>Reversed</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -2041,7 +2056,7 @@ export default function App() {
             </label>
           )}
 
-          {inputMode === 'url' && (
+          {inputMode === 'url' && !preview && (
             <div className="url-mode">
               <div className="url-row-sm">
                 <input
@@ -2084,6 +2099,18 @@ export default function App() {
               {extractionInfo.candidates} candidates → {extractionInfo.selected} selected
             </div>
           )}
+
+          {/* ── Show contrast toggle (always visible, above tabs) ── */}
+          <div className="contrast-toggle-row">
+            <label className="contrast-toggle-label">
+              <input
+                type="checkbox"
+                checked={showContrast}
+                onChange={e => setShowContrast(e.target.checked)}
+              />
+              Show contrast
+            </label>
+          </div>
 
           {/* ── Left panel tab switcher ── */}
           <div className="left-tabs">
@@ -2209,16 +2236,6 @@ export default function App() {
                   ))}
                 </div>
               )}
-              <div className="contrast-toggle-row">
-                <label className="contrast-toggle-label">
-                  <input
-                    type="checkbox"
-                    checked={showContrast}
-                    onChange={e => setShowContrast(e.target.checked)}
-                  />
-                  Show contrast
-                </label>
-              </div>
             </div>
           )}
 
@@ -2411,22 +2428,23 @@ export default function App() {
                         const passDark   = passesAA(ratioDark)
                         const fg         = readableText(hex)
                         const isWhiteFg  = fg === '#ffffff'
-                        const passBg  = isWhiteFg ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.7)'
-                        const failBg  = isWhiteFg ? 'rgba(0,0,0,0.38)'       : 'rgba(255,255,255,0.55)'
+                        const passBg   = isWhiteFg ? 'rgba(91,166,91,0.55)'  : 'rgba(91,166,91,0.80)'
+                        const failBg   = isWhiteFg ? 'rgba(220,60,60,0.75)'  : 'rgba(200,40,40,0.80)'
+                        const badgeFg  = '#ffffff'
                         return (
                           <div key={i} className="contrast-row">
-                            <div className="contrast-cell" style={{ background: hex, color: fg }}>
+                            <div className={`contrast-cell ${!passLight ? 'contrast-cell--fail' : ''}`} style={{ background: hex, color: fg }}>
                               <span className="contrast-ratio">{ratioLight.toFixed(1)}:1</span>
-                              <span className="contrast-badge" style={{ background: passLight ? passBg : failBg }}>{lvLight}</span>
+                              <span className="contrast-badge" style={{ background: passLight ? passBg : failBg, color: badgeFg }}>{lvLight}</span>
                               {!passLight && (
-                                <button className="contrast-fix" style={{ color: fg, borderColor: fg + '44' }} onClick={() => handleAutoFix(i, LIGHT_BG)} title="Auto-fix contrast">fix</button>
+                                <button className="contrast-fix" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.55)', background: 'rgba(200,40,40,0.80)' }} onClick={() => handleAutoFix(i, LIGHT_BG)} title="Auto-fix contrast">fix →</button>
                               )}
                             </div>
-                            <div className="contrast-cell" style={{ background: hex, color: fg }}>
+                            <div className={`contrast-cell ${!passDark ? 'contrast-cell--fail' : ''}`} style={{ background: hex, color: fg }}>
                               <span className="contrast-ratio">{ratioDark.toFixed(1)}:1</span>
-                              <span className="contrast-badge" style={{ background: passDark ? passBg : failBg }}>{lvDark}</span>
+                              <span className="contrast-badge" style={{ background: passDark ? passBg : failBg, color: badgeFg }}>{lvDark}</span>
                               {!passDark && (
-                                <button className="contrast-fix" style={{ color: fg, borderColor: fg + '44' }} onClick={() => handleAutoFix(i, DARK_BG)} title="Auto-fix contrast">fix</button>
+                                <button className="contrast-fix" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.55)', background: 'rgba(200,40,40,0.80)' }} onClick={() => handleAutoFix(i, DARK_BG)} title="Auto-fix contrast">fix →</button>
                               )}
                             </div>
                           </div>
@@ -2468,7 +2486,7 @@ export default function App() {
               <div className="accord-body accord-body--export">
                 {palette.length > 0 ? (
                   <>
-                    {/* Scales export tabs */}
+                    {/* Scales export tabs + download buttons inline */}
                     {leftTab === 'scales' && (<>
                       <div className="export-tabs">
                         {SCALE_EXPORT_TABS.map(tab => (
@@ -2478,11 +2496,15 @@ export default function App() {
                             onClick={() => setScaleExportTab(tab)}
                           >{tab}</button>
                         ))}
+                        <div className="export-tabs-actions">
+                          <button className="export-dl-btn" onClick={downloadPNG} title="Download PNG">PNG</button>
+                          <button className="export-dl-btn" onClick={downloadTXT} title="Download TXT">TXT</button>
+                        </div>
                       </div>
                       <pre className="code-block" dangerouslySetInnerHTML={{ __html: scaleExportCodeHTML }} />
                     </>)}
 
-                    {/* Swatches export tabs */}
+                    {/* Swatches export tabs + download buttons inline */}
                     {leftTab === 'swatches' && (<>
                       <div className="export-tabs">
                         {EXPORT_TABS.map(tab => (
@@ -2492,6 +2514,10 @@ export default function App() {
                             onClick={() => setExportTab(tab)}
                           >{tab}</button>
                         ))}
+                        <div className="export-tabs-actions">
+                          <button className="export-dl-btn" onClick={downloadPNG} title="Download PNG">PNG</button>
+                          <button className="export-dl-btn" onClick={downloadTXT} title="Download TXT">TXT</button>
+                        </div>
                       </div>
                       {exportTab === 'custom' ? (
                         <div className="custom-template-section">
@@ -2544,14 +2570,13 @@ export default function App() {
                       )}
                     </>)}
 
-                    {/* Download + copy row */}
+                    {/* Copy row only */}
                     <div className="export-download-row">
-                      <button className="export-dl-btn" onClick={downloadPNG}>PNG</button>
-                      <button className="export-dl-btn" onClick={downloadTXT}>TXT</button>
                       <button
                         className={`export-copy-btn ${copied === 'export' ? 'export-copy-btn--copied' : ''}`}
                         onClick={handleExport}
-                      >{copied === 'export' ? '✓ copied' : 'copy ↓'}</button>
+                        style={{ marginLeft: 0, width: '100%' }}
+                      >{copied === 'export' ? '✓ copied' : 'copy to clipboard'}</button>
                     </div>
                   </>
                 ) : (

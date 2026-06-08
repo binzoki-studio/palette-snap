@@ -1090,6 +1090,16 @@
   letter-spacing: 0.02em;
 }
 
+/* Inline PNG/TXT download buttons inside the export tab bar */
+.export-tabs-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding-right: 4px;
+  flex-shrink: 0;
+}
+
 .code-block {
   font-family: 'DM Mono', monospace;
   font-size: 11px;
@@ -1196,21 +1206,29 @@
   background: rgba(0,0,0,0.35);
 }
 
+/* Fail cell highlight */
+.contrast-cell--fail {
+  outline: 1.5px solid rgba(200, 60, 60, 0.50);
+  outline-offset: -1.5px;
+}
+
 /* Auto-fix button */
 .contrast-fix {
   font-family: 'DM Mono', monospace;
   font-size: 9px;
-  background: none;
-  border: 0.5px solid;        /* color set inline */
+  background: rgba(0,0,0,0.25);
+  border: 1px solid;           /* color set inline */
   border-radius: 4px;
-  padding: 2px 5px;
+  padding: 2px 7px;
   cursor: pointer;
-  margin-top: 2px;
+  margin-top: 3px;
   align-self: flex-start;
-  opacity: 0.7;
-  transition: opacity 0.12s ease;
+  opacity: 0.85;
+  transition: opacity 0.12s ease, background 0.12s ease;
+  font-weight: 600;
+  letter-spacing: 0.03em;
 }
-.contrast-fix:hover { opacity: 1; }
+.contrast-fix:hover { opacity: 1; background: rgba(0,0,0,0.40); }
 
 /* ── Vision pills ────────────────────────────────────────── */
 .vision-pills {
@@ -1611,8 +1629,8 @@
 /* ── Show contrast toggle ────────────────────────────────── */
 .contrast-toggle-row {
   flex-shrink: 0;
-  padding: 6px 14px 8px;
-  border-top: 1px solid #1C1C22;
+  padding: 4px 14px 6px;
+  border-bottom: 1px solid #1C1C22;
 }
 
 .contrast-toggle-label {
@@ -1713,7 +1731,13 @@
 }
 .accord-header:hover { background: #1C1C22; }
 
-.accord-header .panel-label { flex: 1; }
+.accord-header .panel-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
 
 .accord-chevron {
   flex-shrink: 0;
@@ -1894,8 +1918,10 @@
   display: flex;
   gap: 3px;
   align-items: center;
-  overflow: hidden;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.preview-tpl-switcher::-webkit-scrollbar { display: none; }
 
 .preview-tpl-pill {
   font-family: 'DM Mono', monospace;
@@ -1974,6 +2000,10 @@
   font-size: 10px;
   font-weight: 600;
   line-height: 1;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .sc-logo-time {
   font-family: 'DM Mono', monospace;
@@ -2000,6 +2030,9 @@
 .sc-serif-heading--lg {
   font-size: 1.65rem;
   text-align: center;
+  width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .sc-serif-heading--md {
   font-size: 1.15rem;
@@ -2666,6 +2699,19 @@
   letter-spacing: -0.05em;
   user-select: none;
   white-space: nowrap;
+}
+
+.brand-bottom-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+.brand-type-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 /* ── Cards template ──────────────────────────────────────── */
