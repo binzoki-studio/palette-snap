@@ -1868,6 +1868,26 @@
   overflow: hidden;
 }
 
+.accord-body--image {
+  overflow: visible;
+}
+
+.image-reset-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 14px 8px;
+}
+.image-reset-btn {
+  font-family: 'DM Mono', monospace;
+  font-size: 9.5px;
+  color: var(--app-inactive);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.12s ease;
+}
+.image-reset-btn:hover { color: var(--app-muted); }
+
 .accord-body--export {
   display: flex;
   flex-direction: column;

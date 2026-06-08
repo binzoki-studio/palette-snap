@@ -1561,6 +1561,8 @@ export default function App() {
   // ── Sprint 2.5 state ─────────────────────────────────────────────────────
   const [leftTab, setLeftTab]           = useState('swatches') // 'swatches' | 'scales'
   const [showContrast, setShowContrast] = useState(false)
+  const [imageOpen, setImageOpen]       = useState(true)
+  const [colorsOpen, setColorsOpen]     = useState(true)
   const [visionOpen, setVisionOpen]     = useState(true)
   const [exportOpen, setExportOpen]     = useState(true)
 
@@ -2117,164 +2119,201 @@ export default function App() {
         {/* ═══════════ PANEL 1: IMAGE + WORKSPACE ═══════════ */}
         <aside className="panel panel--image" style={{ width: panelWidths.left }}>
 
-          {/* Panel header */}
-          <div className="panel-header">
-            <span className="panel-label">IMAGE</span>
-            {preview && (
-              <button className="panel-action" onClick={resetToInput} title="Change image">↺</button>
-            )}
-          </div>
-
-          {/* Sampling toggle */}
-          {preview && (
-            <div className="sampling-toggle">
-              {['global', 'region'].map(m => (
+          {/* ── IMAGE accordion ── */}
+          <div className="accord-section">
+            <button className="accord-header" onClick={() => setImageOpen(o => !o)}>
+              <span className="panel-label">IMAGE</span>
+              {preview && !imageOpen && (
                 <button
-                  key={m}
-                  className={`sampling-btn ${samplingMode === m ? 'sampling-btn--active' : ''}`}
-                  onClick={toggleSampling}
-                >{m}</button>
-              ))}
-            </div>
-          )}
-
-          {/* Image preview / drop zone */}
-          <div className="image-container-wrap">
-            {preview ? (
-              <div
-                className={`image-container ${samplingMode === 'region' ? 'image-container--region' : ''}`}
-                ref={imageWrapRef}
-                onMouseDown={handleImageMouseDown}
-                onMouseMove={handleImageMouseMove}
-                onMouseUp={handleImageMouseUp}
-                onMouseLeave={handleImageMouseUp}
+                  className="panel-action"
+                  onClick={e => { e.stopPropagation(); resetToInput() }}
+                  title="Change image"
+                >↺</button>
+              )}
+              <svg
+                className={`accord-chevron ${imageOpen ? 'accord-chevron--open' : ''}`}
+                width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"
               >
-                <img
-                  ref={imgRef}
-                  src={preview}
-                  alt="uploaded"
-                  className="preview-img"
-                  onLoad={onImageLoad}
-                  onError={onImageError}
-                  draggable={false}
-                />
-                {samplingMode === 'region' && (
-                  <div
-                    className="region-cursor"
-                    style={{ left: `${regionPos.x * 100}%`, top: `${regionPos.y * 100}%` }}
-                  />
+                <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+
+            {imageOpen && (
+              <div className="accord-body accord-body--image">
+                {/* Sampling toggle */}
+                {preview && (
+                  <div className="sampling-toggle">
+                    {['global', 'region'].map(m => (
+                      <button
+                        key={m}
+                        className={`sampling-btn ${samplingMode === m ? 'sampling-btn--active' : ''}`}
+                        onClick={toggleSampling}
+                      >{m}</button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Image preview / drop zone */}
+                <div className="image-container-wrap">
+                  {preview ? (
+                    <div
+                      className={`image-container ${samplingMode === 'region' ? 'image-container--region' : ''}`}
+                      ref={imageWrapRef}
+                      onMouseDown={handleImageMouseDown}
+                      onMouseMove={handleImageMouseMove}
+                      onMouseUp={handleImageMouseUp}
+                      onMouseLeave={handleImageMouseUp}
+                    >
+                      <img
+                        ref={imgRef}
+                        src={preview}
+                        alt="uploaded"
+                        className="preview-img"
+                        onLoad={onImageLoad}
+                        onError={onImageError}
+                        draggable={false}
+                      />
+                      {samplingMode === 'region' && (
+                        <div
+                          className="region-cursor"
+                          style={{ left: `${regionPos.x * 100}%`, top: `${regionPos.y * 100}%` }}
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="image-placeholder">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={C.inactive} strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
+                        <rect x="3" y="3" width="18" height="18" rx="3"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <path d="M21 15l-5-5L5 21"/>
+                      </svg>
+                      <span>No image loaded</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Input mode switcher */}
+                <div className="input-modes">
+                  {['upload', 'url', 'camera'].map(m => (
+                    <button
+                      key={m}
+                      className={`input-mode-btn ${inputMode === m ? 'input-mode-btn--active' : ''}`}
+                      onClick={() => { setInputMode(m); setUrlError(null) }}
+                    >{m}</button>
+                  ))}
+                </div>
+
+                {/* Mode panels */}
+                {inputMode === 'upload' && (
+                  <label
+                    className={`dropzone-sm ${dragging ? 'dropzone-sm--active' : ''}`}
+                    onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+                    onDragLeave={() => setDragging(false)}
+                    onDrop={onDrop}
+                  >
+                    <span className="dz-hint">drop image or click</span>
+                    <input ref={uploadInputRef} type="file" accept="image/*" hidden onChange={onFileChange} />
+                  </label>
+                )}
+
+                {inputMode === 'url' && (
+                  <div className="url-mode">
+                    <div className="url-row-sm">
+                      <input
+                        type="url"
+                        className="url-input-sm"
+                        placeholder="https://…"
+                        value={urlInput}
+                        onChange={e => { setUrlInput(e.target.value); setUrlError(null) }}
+                        onKeyDown={e => e.key === 'Enter' && handleUrlLoad()}
+                        autoFocus
+                      />
+                      <button
+                        className="url-go"
+                        onClick={handleUrlLoad}
+                        disabled={!urlInput.trim() || urlLoading}
+                      >{urlLoading ? '…' : '→'}</button>
+                    </div>
+                    {urlError && <p className="url-err">{urlError}</p>}
+                  </div>
+                )}
+
+                {inputMode === 'camera' && (
+                  <button className="camera-mode-btn" onClick={() => cameraInputRef.current?.click()}>
+                    open camera
+                    <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={onFileChange} />
+                  </button>
+                )}
+
+                {/* Controls: undo + redo + stepper */}
+                <div className="image-controls">
+                  <div className="ctrl-undo-redo">
+                    <button className="ctrl-btn" onClick={undo} disabled={history.length === 0}>←</button>
+                    <button className="ctrl-btn" onClick={redo} disabled={redoHistory.length === 0}>→</button>
+                  </div>
+                  <div className="stepper">
+                    <button className="stepper-btn" onClick={() => handleCountChange(-1)} disabled={!canDecrement}>−</button>
+                    <span className="stepper-count">{colorCount}</span>
+                    <button className="stepper-btn" onClick={() => handleCountChange(1)} disabled={!canIncrement}>+</button>
+                    <span className="stepper-hint">5–6 recommended</span>
+                  </div>
+                </div>
+                {extractionInfo && (
+                  <div className="extraction-info">
+                    {extractionInfo.candidates} candidates → {extractionInfo.selected} selected
+                  </div>
+                )}
+
+                {/* Change image action (visible when open) */}
+                {preview && (
+                  <div className="image-reset-row">
+                    <button className="image-reset-btn" onClick={resetToInput}>↺ change image</button>
+                  </div>
                 )}
               </div>
-            ) : (
-              <div className="image-placeholder">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={C.inactive} strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
-                  <rect x="3" y="3" width="18" height="18" rx="3"/>
-                  <circle cx="8.5" cy="8.5" r="1.5"/>
-                  <path d="M21 15l-5-5L5 21"/>
-                </svg>
-                <span>No image loaded</span>
-              </div>
             )}
           </div>
 
-          {/* Input mode switcher */}
-          <div className="input-modes">
-            {['upload', 'url', 'camera'].map(m => (
-              <button
-                key={m}
-                className={`input-mode-btn ${inputMode === m ? 'input-mode-btn--active' : ''}`}
-                onClick={() => { setInputMode(m); setUrlError(null) }}
-              >{m}</button>
-            ))}
-          </div>
-
-          {/* Mode panels */}
-          {inputMode === 'upload' && (
-            <label
-              className={`dropzone-sm ${dragging ? 'dropzone-sm--active' : ''}`}
-              onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={onDrop}
-            >
-              <span className="dz-hint">drop image or click</span>
-              <input ref={uploadInputRef} type="file" accept="image/*" hidden onChange={onFileChange} />
-            </label>
-          )}
-
-          {inputMode === 'url' && (
-            <div className="url-mode">
-              <div className="url-row-sm">
-                <input
-                  type="url"
-                  className="url-input-sm"
-                  placeholder="https://…"
-                  value={urlInput}
-                  onChange={e => { setUrlInput(e.target.value); setUrlError(null) }}
-                  onKeyDown={e => e.key === 'Enter' && handleUrlLoad()}
-                  autoFocus
-                />
-                <button
-                  className="url-go"
-                  onClick={handleUrlLoad}
-                  disabled={!urlInput.trim() || urlLoading}
-                >{urlLoading ? '…' : '→'}</button>
-              </div>
-              {urlError && <p className="url-err">{urlError}</p>}
-            </div>
-          )}
-
-          {inputMode === 'camera' && (
-            <button className="camera-mode-btn" onClick={() => cameraInputRef.current?.click()}>
-              open camera
-              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={onFileChange} />
+          {/* ── COLORS accordion ── */}
+          <div className="accord-section">
+            <button className="accord-header" onClick={() => setColorsOpen(o => !o)}>
+              <span className="panel-label">COLORS</span>
+              <svg
+                className={`accord-chevron ${colorsOpen ? 'accord-chevron--open' : ''}`}
+                width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"
+              >
+                <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </button>
-          )}
 
-          {/* Controls: undo + redo + stepper */}
-          <div className="image-controls">
-            <div className="ctrl-undo-redo">
-              <button className="ctrl-btn" onClick={undo} disabled={history.length === 0}>←</button>
-              <button className="ctrl-btn" onClick={redo} disabled={redoHistory.length === 0}>→</button>
-            </div>
-            <div className="stepper">
-              <button className="stepper-btn" onClick={() => handleCountChange(-1)} disabled={!canDecrement}>−</button>
-              <span className="stepper-count">{colorCount}</span>
-              <button className="stepper-btn" onClick={() => handleCountChange(1)} disabled={!canIncrement}>+</button>
-              <span className="stepper-hint">5–6 recommended</span>
-            </div>
-          </div>
-          {extractionInfo && (
-            <div className="extraction-info">
-              {extractionInfo.candidates} candidates → {extractionInfo.selected} selected
-            </div>
-          )}
+            {colorsOpen && (<>
+              {/* Show contrast toggle */}
+              <div className="contrast-toggle-row">
+                <label className="contrast-toggle-label">
+                  <input
+                    type="checkbox"
+                    checked={showContrast}
+                    onChange={e => setShowContrast(e.target.checked)}
+                  />
+                  Show contrast
+                </label>
+              </div>
 
-          {/* ── Show contrast toggle (always visible, above tabs) ── */}
-          <div className="contrast-toggle-row">
-            <label className="contrast-toggle-label">
-              <input
-                type="checkbox"
-                checked={showContrast}
-                onChange={e => setShowContrast(e.target.checked)}
-              />
-              Show contrast
-            </label>
-          </div>
-
-          {/* ── Left panel tab switcher ── */}
-          <div className="left-tabs">
-            <button
-              className={`left-tab ${leftTab === 'swatches' ? 'left-tab--active' : ''}`}
-              onClick={() => setLeftTab('swatches')}
-            >Swatches</button>
-            <button
-              className={`left-tab ${leftTab === 'scales' ? 'left-tab--active' : ''}`}
-              onClick={() => setLeftTab('scales')}
-            >Scales</button>
-          </div>
+              {/* Tab switcher */}
+              <div className="left-tabs">
+                <button
+                  className={`left-tab ${leftTab === 'swatches' ? 'left-tab--active' : ''}`}
+                  onClick={() => setLeftTab('swatches')}
+                >Swatches</button>
+                <button
+                  className={`left-tab ${leftTab === 'scales' ? 'left-tab--active' : ''}`}
+                  onClick={() => setLeftTab('scales')}
+                >Scales</button>
+              </div>
+            </>)}
 
           {/* ── Swatches tab ── */}
-          {leftTab === 'swatches' && (
+          {colorsOpen && leftTab === 'swatches' && (
             <div className="left-tab-content">
               {palette.length > 0 ? (
                 <div className="swatch-list">
@@ -2389,7 +2428,7 @@ export default function App() {
           )}
 
           {/* ── Scales tab ── */}
-          {leftTab === 'scales' && (
+          {colorsOpen && leftTab === 'scales' && (
             <div className="left-tab-content">
               {palette.length > 0 ? (
                 <div className="scales-view">
@@ -2432,6 +2471,8 @@ export default function App() {
               )}
             </div>
           )}
+
+          </div>{/* end COLORS accord-section */}
 
         </aside>
 
