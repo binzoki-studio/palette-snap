@@ -1355,9 +1355,23 @@ function CardsPreview({ palette, roles = {}, uiBg = 'light' }) {
   const pageBg   = uiBg === 'dark' ? '#111' : '#EEEEF0'
   const pageText = uiBg === 'dark' ? bgColor : textCol
 
-  // Card 1 overlay gradient uses primary
-  const overlayGrad = `linear-gradient(to bottom, transparent 25%, ${ha(primary, 0.55)} 65%, ${ha(primary, 0.88)} 100%)`
-  // Card 2 search button uses secondary; heart uses accent
+  // ── Card 1 colors ──────────────────────────────────────────
+  // Deep gradient: primary fades in from ~40%, goes nearly opaque at bottom
+  const overlayGrad = `linear-gradient(to bottom, transparent 20%, ${ha(primary, 0.45)} 55%, ${ha(primary, 0.92)} 100%)`
+  // City name: surface (lightest palette color, readable on dark overlay)
+  const nycCity   = surface
+  // "Economy" badge: accent on a translucent accent bg
+  const nycBadgeBg = ha(accent, 0.28)
+  // Meta icons + text: secondary at high opacity
+  const nycMeta   = secondary
+  // Price strong: accent
+  const nycPrice  = accent
+  // Search button: accent background, readable fg
+  const nycBtnFg  = readableText(accent)
+  // Heart frosted: accent tint
+  const nycHeartFg = accent
+
+  // ── Card 2 colors ──────────────────────────────────────────
   const sfBtnFg  = readableText(secondary)
   const heartBg  = ha(accent, 0.14)
 
@@ -1369,17 +1383,17 @@ function CardsPreview({ palette, roles = {}, uiBg = 'light' }) {
         <div className="fc-card fc-card--immersive">
           <img className="fc-bg-img" src={FC_NYC} alt="New York City" />
           <div className="fc-overlay" style={{ background: overlayGrad }} />
-          <button className="fc-heart-top" aria-label="Save">
+          <button className="fc-heart-top" style={{ background: ha(accent, 0.22), color: nycHeartFg }} aria-label="Save">
             <HeartIcon size={17} />
           </button>
           <div className="fc-immersive-body">
-            <div className="fc-city" style={{ color: '#fff' }}>New York</div>
-            <div className="fc-class" style={{ color: 'rgba(255,255,255,0.72)' }}>Economy</div>
-            <div className="fc-meta" style={{ color: 'rgba(255,255,255,0.85)' }}>
-              <span className="fc-meta-item"><TagIcon /> from <strong>$120</strong></span>
+            <div className="fc-city" style={{ color: nycCity }}>New York</div>
+            <div className="fc-economy-badge" style={{ background: nycBadgeBg, color: accent }}>Economy</div>
+            <div className="fc-meta" style={{ color: nycMeta }}>
+              <span className="fc-meta-item"><TagIcon /> from <strong style={{ color: nycPrice }}>$120</strong></span>
               <span className="fc-meta-item"><PlaneIcon /> JFK</span>
             </div>
-            <button className="fc-search-btn" style={{ background: '#fff', color: textCol }}>
+            <button className="fc-search-btn" style={{ background: accent, color: nycBtnFg }}>
               Search flight
             </button>
           </div>
