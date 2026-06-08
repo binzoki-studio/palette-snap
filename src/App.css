@@ -1174,7 +1174,10 @@
   border-bottom: 1px solid var(--app-subtle);
   width: 100%;
   box-sizing: border-box;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.export-tabs::-webkit-scrollbar { display: none; }
 
 .export-tab {
   font-family: 'DM Mono', monospace;
@@ -1186,6 +1189,7 @@
   border-bottom: 1.5px solid transparent;
   margin-bottom: -0.5px;
   transition: color 0.12s ease;
+  flex-shrink: 0;
 }
 .export-tab--active { color: var(--app-text); border-bottom-color: var(--app-text); }
 .export-tab:hover:not(.export-tab--active) { color: var(--app-muted); }
