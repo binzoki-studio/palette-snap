@@ -1800,3 +1800,76 @@
   letter-spacing: 0.1em;
   padding: 6px 14px 4px;
 }
+
+/* ── Sprint 2.6: Role dropdown ──────────────────────────── */
+.role-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.role-dropdown-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+}
+
+.role-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 100;
+  background: #1C1C22;
+  border: 1px solid #3E3E46;
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 130px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+
+.role-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 8px;
+  border: none;
+  background: none;
+  border-radius: 5px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: #9A9AA4;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+.role-dropdown-item:hover { background: #2E2E34; color: #E8E8E6; }
+.role-dropdown-item--active { color: #E8E8E6; background: #2E2E34; }
+.role-dropdown-item--none { color: #4A4A54; font-style: italic; }
+.role-dropdown-item--none:hover { color: #62626C; background: #1C1C22; }
+
+.role-dropdown-label {
+  font-weight: 600;
+  min-width: 26px;
+  color: #E8E8E6;
+}
+.role-dropdown-item--active .role-dropdown-label { color: #fff; }
+
+.role-dropdown-name {
+  flex: 1;
+  color: inherit;
+}
+
+.role-dropdown-swap {
+  font-size: 9px;
+  color: #62626C;
+  margin-left: auto;
+}
+
+/* ── Stepper hint ───────────────────────────────────────── */
+.stepper-hint {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: #4A4A54;
+  white-space: nowrap;
+  margin-left: 2px;
+}

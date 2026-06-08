@@ -219,22 +219,58 @@ function uniqueKebabNames(names) {
 }
 
 // ── Semantic roles ────────────────────────────────────────────────────────────
-const ROLE_ORDER  = [null, 'text', 'bg', 'primary', 'secondary', 'accent']
-const ROLE_LABELS = { text: 'Text', bg: 'BG', primary: '1°', secondary: '2°', accent: 'ACC' }
-const ROLE_PROP   = { text: 'text', bg: 'background', primary: 'primary', secondary: 'secondary', accent: 'accent' }
+const ROLE_ALL    = ['text', 'background', 'primary', 'secondary', 'accent', 'surface', 'muted', 'border']
+const ROLE_ORDER  = [null, ...ROLE_ALL]
+const ROLE_LABELS = {
+  text: 'TXT', background: 'BG', primary: '1°', secondary: '2°',
+  accent: 'ACC', surface: 'SRF', muted: 'MUT', border: 'BDR',
+}
+const ROLE_PROP   = {
+  text: 'text', background: 'background', primary: 'primary', secondary: 'secondary',
+  accent: 'accent', surface: 'surface', muted: 'muted', border: 'border',
+}
 
 function autoAssignRoles(pal) {
   if (!pal.length) return {}
-  const items = pal.map((hex, i) => ({ i, lum: getLuminance(hex), sat: hexToHsl(hex).s }))
+  const items = pal.map((hex, i) => {
+    const { l: lightness, s: sat } = hexToHsl(hex)
+    return { i, lum: getLuminance(hex), lightness, sat }
+  })
   const byLum = [...items].sort((a, b) => a.lum - b.lum)
   const result = {}, used = new Set()
+
+  // 1. text = darkest overall
   result[byLum[0].i] = 'text'; used.add(byLum[0].i)
-  const lightestIdx = byLum[byLum.length - 1].i
-  if (!used.has(lightestIdx)) { result[lightestIdx] = 'bg'; used.add(lightestIdx) }
-  const remaining = items.filter(x => !used.has(x.i)).sort((a, b) => b.sat - a.sat)
-  ;['primary', 'secondary', 'accent'].forEach((role, ri) => {
-    if (remaining[ri]) result[remaining[ri].i] = role
-  })
+
+  // 2. background = lightest overall (skip if same as text)
+  const bgIdx = byLum[byLum.length - 1].i
+  if (!used.has(bgIdx)) { result[bgIdx] = 'background'; used.add(bgIdx) }
+
+  // remaining sorted by saturation desc
+  const rem = items.filter(x => !used.has(x.i)).sort((a, b) => b.sat - a.sat)
+
+  // 3. primary = highest saturation remaining
+  if (rem[0]) { result[rem[0].i] = 'primary'; used.add(rem[0].i) }
+
+  // 4. secondary = second highest saturation
+  if (rem[1]) { result[rem[1].i] = 'secondary'; used.add(rem[1].i) }
+
+  // 5. accent = third highest saturation
+  if (rem[2]) { result[rem[2].i] = 'accent'; used.add(rem[2].i) }
+
+  // Remaining sorted by lightness desc
+  const rem2 = items.filter(x => !used.has(x.i)).sort((a, b) => b.lightness - a.lightness)
+
+  // 6. surface = lightest of remaining (near-bg, light neutral)
+  if (rem2[0]) { result[rem2[0].i] = 'surface'; used.add(rem2[0].i) }
+
+  // 7. muted = next lightest (washed-out supporting color)
+  if (rem2[1]) { result[rem2[1].i] = 'muted'; used.add(rem2[1].i) }
+
+  // 8. border = darkest of remaining (subtle dividers)
+  const rem3 = items.filter(x => !used.has(x.i)).sort((a, b) => a.lum - b.lum)
+  if (rem3[0]) { result[rem3[0].i] = 'border'; used.add(rem3[0].i) }
+
   return result
 }
 
@@ -295,44 +331,74 @@ const SCALE_EXPORT_FORMATS = {
 }
 
 // ── Export formats ───────────────────────────────────────────────────────────
-const EXPORT_FORMATS = {
-  css:      (p) => `:root {\n${p.map((h, i) => `  --color-${i + 1}: ${h};`).join('\n')}\n}`,
-  tailwind: (p) => `colors: {\n${p.map((h, i) => `  'color-${i + 1}': '${h}',`).join('\n')}\n}`,
-  json:     (p) => JSON.stringify(p, null, 2),
-  scss:     (p) => p.map((h, i) => `$color-${i + 1}: ${h};`).join('\n'),
+// Builds role-named entries; falls back to --color-N for unassigned colors
+function buildRoleEntries(palette, rolesMap) {
+  return palette.map((hex, i) => ({ hex, role: rolesMap[i] ?? null, num: i + 1 }))
 }
-const EXPORT_TABS = ['css', 'tailwind', 'json', 'scss', 'custom']
+
+const EXPORT_FORMATS = {
+  css: (palette, rolesMap) => {
+    const entries = buildRoleEntries(palette, rolesMap)
+    const lines = entries.map(({ hex, role, num }) =>
+      role ? `  --color-${role}: ${hex};` : `  --color-${num}: ${hex};`
+    )
+    // Also add numbered aliases for assigned roles
+    const aliases = entries
+      .filter(e => e.role)
+      .map(({ hex, num }) => `  --color-${num}: ${hex};`)
+    return `:root {\n${lines.join('\n')}${aliases.length ? '\n  /* numbered aliases */\n' + aliases.join('\n') : ''}\n}`
+  },
+  tw4: (palette, rolesMap) => {
+    const entries = buildRoleEntries(palette, rolesMap)
+    const lines = entries.map(({ hex, role, num }) =>
+      role ? `  --color-${role}: ${hex};` : `  --color-${num}: ${hex};`
+    )
+    return `@theme {\n${lines.join('\n')}\n}`
+  },
+  tw3: (palette, rolesMap) => {
+    const entries = buildRoleEntries(palette, rolesMap)
+    const obj = Object.fromEntries(
+      entries.map(({ hex, role, num }) => [role ?? `color-${num}`, hex])
+    )
+    return `colors: ${JSON.stringify(obj, null, 2)}`
+  },
+  json: (palette, rolesMap) => {
+    const entries = buildRoleEntries(palette, rolesMap)
+    const obj = Object.fromEntries(
+      entries.map(({ hex, role, num }) => {
+        const { L, C, H } = hexToOklch(hex)
+        return [role ?? `color-${num}`, { hex, oklch: oklchToCss(L, C, H) }]
+      })
+    )
+    return JSON.stringify(obj, null, 2)
+  },
+  scss: (palette, rolesMap) => {
+    const entries = buildRoleEntries(palette, rolesMap)
+    return entries.map(({ hex, role, num }) =>
+      role ? `$color-${role}: ${hex};` : `$color-${num}: ${hex};`
+    ).join('\n')
+  },
+}
+const EXPORT_TABS = ['css', 'tw4', 'tw3', 'json', 'scss', 'custom']
 
 function buildExportCode(tab, palette, rolesMap, customTpl) {
   if (tab === 'custom') {
     return palette.map((hex, i) => applyTemplate(customTpl, hex, i, rolesMap)).join('\n')
   }
-  let code = EXPORT_FORMATS[tab](palette)
-  // Append role variables for CSS / SCSS when roles exist
-  const roleEntries = Object.entries(rolesMap).filter(([idx]) => palette[+idx])
-  if (roleEntries.length > 0 && (tab === 'css' || tab === 'scss')) {
-    const vars = roleEntries.map(([idx, role]) => {
-      const hex = palette[+idx]
-      const prop = ROLE_PROP[role]
-      return tab === 'css' ? `  --color-${prop}: ${hex};` : `$color-${prop}: ${hex};`
-    })
-    if (tab === 'css') code = code.replace('\n}', '\n  /* roles */\n' + vars.join('\n') + '\n}')
-    else code = code + '\n/* roles */\n' + vars.join('\n')
-  }
-  return code
+  return EXPORT_FORMATS[tab](palette, rolesMap)
 }
 
 function renderCodeHTML(code, tab) {
   let html = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
   html = html.replace(/(#[0-9a-fA-F]{6})/g, '<span class="code-hex">$1</span>')
-  if (tab === 'css') {
+  if (tab === 'css' || tab === 'tw4') {
     html = html
-      .replace(/(--color-\d+)/g, '<span class="code-prop">$1</span>')
-      .replace(/(:root)/g, '<span class="code-sel">$1</span>')
-  } else if (tab === 'tailwind') {
-    html = html.replace(/('color-\d+')/g, '<span class="code-prop">$1</span>')
+      .replace(/(--color-[\w-]+)/g, '<span class="code-prop">$1</span>')
+      .replace(/(:root|@theme)/g, '<span class="code-sel">$1</span>')
+  } else if (tab === 'tw3') {
+    html = html.replace(/("[\w-]+"(?=:))/g, '<span class="code-prop">$1</span>')
   } else if (tab === 'scss') {
-    html = html.replace(/(\$color-\d+)/g, '<span class="code-prop">$1</span>')
+    html = html.replace(/(\$color-[\w-]+)/g, '<span class="code-prop">$1</span>')
   }
   return html
 }
@@ -392,11 +458,14 @@ function LandingPreview({ palette, roles = {}, uiBg = 'light' }) {
     const entry = Object.entries(roles).find(([, r]) => r === role)
     return entry ? (palette[+entry[0]] ?? palette[fallbackIdx ?? 0]) : palette[fallbackIdx ?? 0]
   }
-  const bgColor   = byRole('bg',        palette.length - 1)
-  const textCol   = byRole('text',      0)
-  const primary   = byRole('primary',   Math.min(1, palette.length - 1))
-  const secondary = byRole('secondary', Math.min(2, palette.length - 1))
-  const accent    = byRole('accent',    Math.min(3, palette.length - 1))
+  const bgColor   = byRole('background', palette.length - 1)
+  const textCol   = byRole('text',       0)
+  const primary   = byRole('primary',    Math.min(1, palette.length - 1))
+  const secondary = byRole('secondary',  Math.min(2, palette.length - 1))
+  const accent    = byRole('accent',     Math.min(3, palette.length - 1))
+  const surface   = byRole('surface',    Math.min(4, palette.length - 1))
+  const muted     = byRole('muted',      Math.min(5, palette.length - 1))
+  const border    = byRole('border',     Math.min(6, palette.length - 1))
   const pageBg    = uiBg === 'dark' ? textCol  : bgColor
   const pageText  = uiBg === 'dark' ? bgColor  : textCol
   const primaryFg = readableText(primary)
@@ -443,17 +512,17 @@ function LandingPreview({ palette, roles = {}, uiBg = 'light' }) {
       </section>
 
       {/* Feature cards */}
-      <section className="lp-features" style={{ background: ha(secondary, 0.08) }}>
+      <section className="lp-features" style={{ background: ha(muted, 0.12) }}>
         {[
           { dot: primary,   title: 'Smart Extraction', desc: 'Pull the best colors from any image automatically.' },
           { dot: accent,    title: 'Accessibility',     desc: 'WCAG contrast checks built right in.' },
           { dot: secondary, title: 'Export Ready',      desc: 'CSS, Tailwind, JSON, SCSS — one click.' },
         ].map(({ dot, title, desc }) => (
           <div key={title} className="lp-card"
-            style={{ background: pageBg, border: `1px solid ${ha(secondary, 0.30)}` }}>
+            style={{ background: surface, border: `1px solid ${ha(border, 0.40)}` }}>
             <span className="lp-card-icon" style={{ background: dot }} />
             <span className="lp-card-title" style={{ color: pageText }}>{title}</span>
-            <span className="lp-card-desc" style={{ color: ha(pageText, 0.55) }}>{desc}</span>
+            <span className="lp-card-desc" style={{ color: ha(muted, 0.85) }}>{desc}</span>
           </div>
         ))}
       </section>
@@ -550,6 +619,9 @@ export default function App() {
   const [showContrast, setShowContrast] = useState(false)
   const [a11yOpen, setA11yOpen]         = useState(false)
   const [exportOpen, setExportOpen]     = useState(true)
+
+  // ── Sprint 2.6 state ─────────────────────────────────────────────────────
+  const [openRoleDropdown, setOpenRoleDropdown] = useState(null) // index of swatch with open dropdown
 
   // ── Panel resize state ───────────────────────────────────────────────────
   const [panelWidths, setPanelWidthsState] = useState({ left: 340, right: 280 })
@@ -750,11 +822,11 @@ export default function App() {
   // ── Color count ──────────────────────────────────────────────────────────
   const activeLocksCount = [...locks].filter(i => i < colorCount).length
   const canDecrement = colorCount > 3 && (colorCount - 1) >= activeLocksCount
-  const canIncrement = colorCount < 10
+  const canIncrement = colorCount < 8
 
   const handleCountChange = async (delta) => {
     const newCount = colorCount + delta
-    if (newCount < 3 || newCount > 10) return
+    if (newCount < 3 || newCount > 8) return
     if (newCount < activeLocksCount) return
     pushToHistory(palette, locks, colorCount)
     const newLocks = new Set([...locks].filter(i => i < newCount))
@@ -770,6 +842,27 @@ export default function App() {
         : await runExtraction(newCount, palette, newLocks)
       if (np) setPalette(np)
     }
+  }
+
+  // ── Role assignment ──────────────────────────────────────────────────────
+  const assignRole = (idx, newRole) => {
+    setRoles(prev => {
+      const next = { ...prev }
+      // Remove the old role from this index
+      delete next[idx]
+      if (!newRole) return next
+      // If newRole is already taken by another index, swap
+      const existingIdx = Object.keys(next).find(k => next[+k] === newRole)
+      if (existingIdx !== undefined) {
+        // Swap: give the previous role of `idx` to the existing holder
+        const prevRole = prev[idx]
+        if (prevRole) next[+existingIdx] = prevRole
+        else delete next[+existingIdx]
+      }
+      next[idx] = newRole
+      return next
+    })
+    setOpenRoleDropdown(null)
   }
 
   // ── Sampling toggle ──────────────────────────────────────────────────────
@@ -1118,6 +1211,7 @@ export default function App() {
               <button className="stepper-btn" onClick={() => handleCountChange(-1)} disabled={!canDecrement}>−</button>
               <span className="stepper-count">{colorCount}</span>
               <button className="stepper-btn" onClick={() => handleCountChange(1)} disabled={!canIncrement}>+</button>
+              <span className="stepper-hint">5–6 recommended</span>
             </div>
           </div>
 
@@ -1152,23 +1246,41 @@ export default function App() {
                             <span className="swatch-hex">{hex}</span>
                             <span className="swatch-name">{name}</span>
                           </div>
-                          <button
-                            className={`role-pill ${roles[i] ? 'role-pill--active' : ''}`}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setRoles(prev => {
-                                const cur = prev[i] ?? null
-                                const nextIdx = (ROLE_ORDER.indexOf(cur) + 1) % ROLE_ORDER.length
-                                const next = ROLE_ORDER[nextIdx]
-                                const r = { ...prev }
-                                if (next === null) delete r[i]; else r[i] = next
-                                return r
-                              })
-                            }}
-                            title="Cycle semantic role"
-                          >
-                            {roles[i] ? ROLE_LABELS[roles[i]] : '·'}
-                          </button>
+                          <div className="role-wrapper">
+                            <button
+                              className={`role-pill ${roles[i] ? 'role-pill--active' : ''}`}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setOpenRoleDropdown(prev => prev === i ? null : i)
+                              }}
+                              title="Set semantic role"
+                            >
+                              {roles[i] ? ROLE_LABELS[roles[i]] : '·'}
+                            </button>
+                            {openRoleDropdown === i && (
+                              <>
+                                <div className="role-dropdown-backdrop" onClick={() => setOpenRoleDropdown(null)} />
+                                <div className="role-dropdown">
+                                  <button className="role-dropdown-item role-dropdown-item--none"
+                                    onClick={(e) => { e.stopPropagation(); assignRole(i, null) }}>
+                                    — none
+                                  </button>
+                                  {ROLE_ALL.map(role => {
+                                    const takenBy = Object.keys(roles).find(k => +k !== i && roles[+k] === role)
+                                    return (
+                                      <button key={role}
+                                        className={`role-dropdown-item ${roles[i] === role ? 'role-dropdown-item--active' : ''} ${takenBy !== undefined ? 'role-dropdown-item--taken' : ''}`}
+                                        onClick={(e) => { e.stopPropagation(); assignRole(i, role) }}>
+                                        <span className="role-dropdown-label">{ROLE_LABELS[role]}</span>
+                                        <span className="role-dropdown-name">{role}</span>
+                                        {takenBy !== undefined && <span className="role-dropdown-swap">↔</span>}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </>
+                            )}
+                          </div>
                           {showContrast && (
                             <span className={`a11y-badge ${level ? 'a11y-badge--pass' : 'a11y-badge--fail'}`}>
                               {level || '✗'} {contrast.toFixed(1)}
