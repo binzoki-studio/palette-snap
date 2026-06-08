@@ -1561,7 +1561,6 @@ export default function App() {
   // ── Sprint 2.5 state ─────────────────────────────────────────────────────
   const [leftTab, setLeftTab]           = useState('swatches') // 'swatches' | 'scales'
   const [showContrast, setShowContrast] = useState(false)
-  const [a11yOpen, setA11yOpen]         = useState(false)
   const [exportOpen, setExportOpen]     = useState(true)
 
   // ── Sprint 2.6 state ─────────────────────────────────────────────────────
@@ -2014,13 +2013,7 @@ export default function App() {
 
   // ── Accessibility score ──────────────────────────────────────────────────
   // A color passes if it achieves AA (≥4.5:1) against either light or dark bg
-  const passCount = palette.filter(hex =>
-    getContrastRatio(hex, LIGHT_BG) >= 4.5 || getContrastRatio(hex, DARK_BG) >= 4.5
-  ).length
-  const scoreColor = palette.length === 0 ? C.muted
-    : passCount === palette.length ? C.pass          // all pass: green
-    : passCount >= Math.ceil(palette.length / 2) ? '#C49A2A'  // some fail: amber
-    : C.fail                                         // most fail: red
+
 
   // ── Vision filter style — applied to whole center panel ──────────────────
   const activePanelFilter = VISION_FILTERS[visionMode]?.id
@@ -2549,81 +2542,22 @@ export default function App() {
         {/* ═══════════ PANEL 3: UTILITIES ═══════════ */}
         <aside className="panel panel--intel" style={{ width: panelWidths.right }}>
 
-          {/* ── Accessibility accordion (collapsed by default) ── */}
+          {/* ── Vision simulate ── */}
           <div className="accord-section">
-            <button className="accord-header" onClick={() => setA11yOpen(o => !o)}>
-              <span className="panel-label">ACCESSIBILITY</span>
-              {palette.length > 0 && (
-                <span className="panel-badge" style={{ color: scoreColor }}>
-                  {passCount}/{palette.length} pass
-                </span>
-              )}
-              <svg
-                className={`accord-chevron ${a11yOpen ? 'accord-chevron--open' : ''}`}
-                width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"
-              >
-                <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            {a11yOpen && (
-              <div className="accord-body">
-                {palette.length > 0 ? (
-                  <>
-                    <div className="contrast-matrix-header">
-                      <span className="cm-col-label">on light</span>
-                      <span className="cm-col-label">on dark</span>
-                    </div>
-                    <div className="contrast-matrix">
-                      {palette.map((hex, i) => {
-                        const ratioLight = getContrastRatio(hex, LIGHT_BG)
-                        const ratioDark  = getContrastRatio(hex, DARK_BG)
-                        const lvLight    = badgeLevel(ratioLight)
-                        const lvDark     = badgeLevel(ratioDark)
-                        const passLight  = passesAA(ratioLight)
-                        const passDark   = passesAA(ratioDark)
-                        const fg         = readableText(hex)
-                        const isWhiteFg  = fg === '#ffffff'
-                        const passBg   = isWhiteFg ? 'rgba(91,166,91,0.55)'  : 'rgba(91,166,91,0.80)'
-                        const failBg   = isWhiteFg ? 'rgba(220,60,60,0.75)'  : 'rgba(200,40,40,0.80)'
-                        const badgeFg  = '#ffffff'
-                        return (
-                          <div key={i} className="contrast-row">
-                            <div className={`contrast-cell ${!passLight ? 'contrast-cell--fail' : ''}`} style={{ background: hex, color: fg }}>
-                              <span className="contrast-ratio">{ratioLight.toFixed(1)}:1</span>
-                              <span className="contrast-badge" style={{ background: passLight ? passBg : failBg, color: badgeFg }}>{lvLight}</span>
-                              {!passLight && (
-                                <button className="contrast-fix" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.55)', background: 'rgba(200,40,40,0.80)' }} onClick={() => handleAutoFix(i, LIGHT_BG)} title="Auto-fix contrast">fix →</button>
-                              )}
-                            </div>
-                            <div className={`contrast-cell ${!passDark ? 'contrast-cell--fail' : ''}`} style={{ background: hex, color: fg }}>
-                              <span className="contrast-ratio">{ratioDark.toFixed(1)}:1</span>
-                              <span className="contrast-badge" style={{ background: passDark ? passBg : failBg, color: badgeFg }}>{lvDark}</span>
-                              {!passDark && (
-                                <button className="contrast-fix" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.55)', background: 'rgba(200,40,40,0.80)' }} onClick={() => handleAutoFix(i, DARK_BG)} title="Auto-fix contrast">fix →</button>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                    <div className="vision-section">
-                      <div className="vision-section-label">VISION · SIMULATE</div>
-                      <div className="vision-pills">
-                        {Object.keys(VISION_FILTERS).map(m => (
-                          <button
-                            key={m}
-                            className={`vision-pill ${visionMode === m ? 'vision-pill--active' : ''}`}
-                            onClick={() => setVisionMode(m)}
-                          >{m}</button>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="intel-empty">Load an image first</div>
-                )}
+            <div className="accord-header" style={{ cursor: 'default' }}>
+              <span className="panel-label">VISION · SIMULATE</span>
+            </div>
+            <div className="accord-body">
+              <div className="vision-pills">
+                {Object.keys(VISION_FILTERS).map(m => (
+                  <button
+                    key={m}
+                    className={`vision-pill ${visionMode === m ? 'vision-pill--active' : ''}`}
+                    onClick={() => setVisionMode(m)}
+                  >{m}</button>
+                ))}
               </div>
-            )}
+            </div>
           </div>
 
           {/* ── Export accordion (open by default) ── */}
