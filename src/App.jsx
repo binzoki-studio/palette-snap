@@ -2275,7 +2275,7 @@ export default function App() {
           </div>
 
           {/* ── COLORS accordion ── */}
-          <div className="accord-section">
+          <div className="accord-section accord-section--grow">
             <button className="accord-header" onClick={() => setColorsOpen(o => !o)}>
               <span className="panel-label">COLORS</span>
               <svg

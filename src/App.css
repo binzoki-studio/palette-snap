@@ -1829,6 +1829,23 @@
 /* ── Accordion sections (right panel) ───────────────────── */
 .accord-section {
   border-bottom: 1px solid var(--app-border);
+  flex-shrink: 0;
+}
+
+/* COLORS accordion (left panel) must stretch to fill remaining height
+   so the swatch-list flex:1 / overflow-y:auto chain works */
+.accord-section--grow {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.accord-section--grow .accord-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .accord-header {
