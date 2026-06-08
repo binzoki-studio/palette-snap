@@ -868,111 +868,277 @@ function SocialPreview({ palette, roles = {}, uiBg = 'light' }) {
   )
 }
 
-// ── Dashboard preview ─────────────────────────────────────────────────────────
+// ── Dashboard preview (bento-grid) ───────────────────────────────────────────
 function DashboardPreview({ palette, roles = {}, uiBg = 'light' }) {
   if (!palette.length) return <div className="lp-empty">Load an image to see a preview</div>
-  const byRole = makeByRole(palette, roles)
-  const bgColor  = byRole('background', palette.length - 1)
-  const textCol  = byRole('text',       0)
-  const primary  = byRole('primary',    Math.min(1, palette.length - 1))
-  const secondary= byRole('secondary',  Math.min(2, palette.length - 1))
-  const accent   = byRole('accent',     Math.min(3, palette.length - 1))
-  const surface  = byRole('surface',    Math.min(4, palette.length - 1))
-  const muted    = byRole('muted',      Math.min(5, palette.length - 1))
-  const border   = byRole('border',     Math.min(6, palette.length - 1))
-  const pageBg   = uiBg === 'dark' ? textCol  : bgColor
-  const pageText = uiBg === 'dark' ? bgColor  : textCol
-  const primaryFg = readableText(primary)
+  const byRole    = makeByRole(palette, roles)
+  const bgColor   = byRole('background', palette.length - 1)
+  const textCol   = byRole('text',       0)
+  const primary   = byRole('primary',    Math.min(1, palette.length - 1))
+  const secondary = byRole('secondary',  Math.min(2, palette.length - 1))
+  const accent    = byRole('accent',     Math.min(3, palette.length - 1))
+  const surface   = byRole('surface',    Math.min(4, palette.length - 1))
+  const muted     = byRole('muted',      Math.min(5, palette.length - 1))
+  const border    = byRole('border',     Math.min(6, palette.length - 1))
+  const pageBg    = uiBg === 'dark' ? textCol : bgColor
+  const pageText  = uiBg === 'dark' ? bgColor : textCol
+  const cardBg    = uiBg === 'dark' ? ha(bgColor, 0.10) : bgColor
+  const accentFg  = readableText(accent)
 
-  const navItems = ['Overview', 'Analytics', 'Projects', 'Team', 'Settings']
-  const stats = [
-    { label: 'Total Users',   value: '12,480', trend: '+12%' },
-    { label: 'Revenue',       value: '$48.2k', trend: '+8%'  },
-    { label: 'Active Now',    value: '1,294',  trend: '+3%'  },
-    { label: 'Conversion',    value: '3.6%',   trend: '-1%'  },
+  const lollipopH = [28, 34, 42, 50, 38, 60, 48, 55, 68, 80, 88, 95]
+  const earningsH = [30,45,38,55,35,60,42,70,52,64,58,72,80,48,62,74,58,68,46,74,52,64,57,42]
+  const calDays   = ['M','T','W','T','F','S','S']
+  const calRows   = [
+    ['03',null,null,null,null,null,'1.2'],
+    [null,null,'14',null,'16',null, null],
+    ['08','9s','10',null, null,null,'8.'],
   ]
-  const barHeights = [55, 72, 48, 88, 63, 79, 92, 41]
 
   return (
-    <div className="db" style={{ background: pageBg }}>
-      {/* Sidebar */}
-      <aside className="db-sidebar" style={{ background: surface, borderRight: `1px solid ${ha(border, 0.5)}` }}>
-        <div className="db-logo" style={{ borderBottom: `1px solid ${ha(border, 0.4)}` }}>
-          <span className="db-logo-dot" style={{ background: primary }} />
-          <span className="db-logo-name" style={{ color: pageText }}>Workspace</span>
+    <div className="db2" style={{ background: pageBg }}>
+
+      {/* ── Sidebar ──────────────────────────────────────────── */}
+      <aside className="db2-sidebar" style={{ background: ha(pageText, 0.06), borderRadius: 20 }}>
+        <div className="db2-sb-avatar" style={{ background: primary }}>
+          <span style={{ color: readableText(primary), fontSize: 9, fontWeight: 700 }}>PS</span>
         </div>
-        {navItems.map((item, i) => (
-          <div key={item} className={`db-nav-item ${i === 0 ? 'db-nav-item--active' : ''}`}
-            style={{
-              borderLeft: `2.5px solid ${i === 0 ? primary : 'transparent'}`,
-              background: i === 0 ? ha(primary, 0.10) : 'transparent',
-            }}>
-            <span className="db-nav-dot" style={{ background: i === 0 ? primary : ha(pageText, 0.3) }} />
-            <span className="db-nav-label" style={{ color: i === 0 ? pageText : ha(pageText, 0.55) }}>{item}</span>
-          </div>
+        {[
+          { icon: '⌂', active: false },
+          { icon: '◎', active: false },
+          { icon: '⊞', active: false },
+          { icon: '◇', active: false },
+          { icon: '⬡', active: true  },
+          { icon: '≡', active: false },
+          { icon: '$', active: false },
+        ].map(({ icon, active }, i) => (
+          <div key={i} className="db2-sb-icon" style={{
+            color:      active ? pageText       : ha(pageText, 0.32),
+            background: active ? ha(pageText, 0.10) : 'transparent',
+          }}>{icon}</div>
+        ))}
+        <div style={{ flex: 1 }} />
+        {['⚙','◉','✉'].map((icon, i) => (
+          <div key={i} className="db2-sb-icon" style={{ color: ha(pageText, 0.28) }}>{icon}</div>
         ))}
       </aside>
 
-      {/* Main content */}
-      <div className="db-main">
-        {/* Header */}
-        <div className="db-header" style={{ borderBottom: `1px solid ${ha(border, 0.35)}` }}>
-          <span className="db-page-title" style={{ color: pageText }}>Overview</span>
-          <div className="db-header-right">
-            <button className="db-header-btn" style={{ background: primary, color: primaryFg }}>New Report</button>
-            <span className="db-avatar" style={{ background: accent }} />
-          </div>
-        </div>
+      {/* ── Col 1: date tiles + indicators ───────────────────── */}
+      <div className="db2-col">
 
-        {/* Stats row */}
-        <div className="db-stats">
-          {stats.map(({ label, value, trend }, i) => (
-            <div key={label} className="db-stat-card"
-              style={{ background: surface, border: `1px solid ${ha(border, 0.35)}` }}>
-              <span className="db-stat-value" style={{ color: pageText }}>{value}</span>
-              <span className="db-stat-label" style={{ color: ha(muted, 0.8) }}>{label}</span>
-              <span className="db-stat-trend" style={{ color: i < 3 ? accent : secondary }}>{trend}</span>
+        {/* Date tiles */}
+        <div className="db2-date-row">
+          {[
+            { num: '19', bg: pageText,            fg: pageBg,   dot: accent    },
+            { num: '23', bg: surface,              fg: pageText, dot: secondary },
+          ].map(({ num, bg, fg, dot }) => (
+            <div key={num} className="db2-date-tile"
+              style={{ background: bg, border: `1px solid ${ha(border, 0.2)}` }}>
+              <span className="db2-date-num" style={{ color: fg }}>{num}</span>
+              <span className="db2-date-dot" style={{ background: dot }} />
             </div>
           ))}
         </div>
 
-        {/* Chart */}
-        <div className="db-chart-card" style={{ background: surface, border: `1px solid ${ha(border, 0.35)}` }}>
-          <span className="db-chart-title" style={{ color: ha(pageText, 0.7) }}>Monthly Activity</span>
-          <div className="db-chart">
-            <div className="db-chart-bars">
-              {barHeights.map((h, i) => (
-                <div key={i} className="db-bar-wrap">
-                  <div className="db-bar"
-                    style={{ height: `${h}%`, background: i % 2 === 0 ? primary : secondary }} />
+        {/* Indicators card */}
+        <div className="db2-indicators" style={{ background: cardBg, border: `1px solid ${ha(border, 0.22)}` }}>
+          <div className="db2-card-hd">
+            <div>
+              <div className="db2-card-title" style={{ color: pageText }}>Indicators</div>
+              <div className="db2-card-sub"   style={{ color: ha(muted, 0.65) }}>vs Last Month</div>
+            </div>
+            <span className="db2-badge" style={{ background: ha(accent, 0.18), color: accent }}>+19%</span>
+          </div>
+          <div className="db2-ind-value" style={{ color: pageText }}>$7,860</div>
+
+          {/* Lollipop chart */}
+          <div className="db2-lollipop">
+            {lollipopH.map((h, i) => {
+              const isLast = i === lollipopH.length - 1
+              return (
+                <div key={i} className="db2-lollipop-col">
+                  <div style={{
+                    width:        isLast ? 11 : 7,
+                    height:       isLast ? 11 : 7,
+                    borderRadius: '50%',
+                    background:   isLast ? pageText : ha(muted, 0.28),
+                    flexShrink:   0,
+                  }} />
+                  <div style={{
+                    width:      isLast ? 2 : 1.5,
+                    height:     `${h}%`,
+                    minHeight:  4,
+                    background: isLast ? ha(pageText, 0.55) : ha(muted, 0.20),
+                    borderRadius: 1,
+                    flexShrink: 0,
+                  }} />
                 </div>
+              )
+            })}
+          </div>
+          <div className="db2-month-row" style={{ color: ha(muted, 0.45) }}>
+            {['J','F','M','A','M','J','J','A','S','O','N','D'].map((m, i) => <span key={i}>{m}</span>)}
+          </div>
+
+          {/* Footer */}
+          <div className="db2-ind-footer" style={{ background: ha(primary, 0.09) }}>
+            <div style={{ color: ha(pageText, 0.50), fontSize: 9 }}>Total Spend</div>
+            <div style={{ color: pageText, fontSize: 19, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1 }}>$59,638</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+              <span className="db2-badge" style={{ background: ha(accent, 0.18), color: accent }}>+15%</span>
+              <span style={{ color: ha(muted, 0.45), fontSize: 8 }}>vs $8,496 last year</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Col 2: calendar + savings ─────────────────────────── */}
+      <div className="db2-col">
+
+        {/* Calendar */}
+        <div className="db2-calendar" style={{ background: accent }}>
+          <div className="db2-cal-days">
+            {calDays.map((d, i) => (
+              <div key={i} className="db2-cal-dh" style={{ color: ha(accentFg, 0.50) }}>{d}</div>
+            ))}
+          </div>
+          {calRows.map((row, ri) => (
+            <div key={ri} className="db2-cal-row">
+              {row.map((cell, ci) => (
+                <div key={ci} className="db2-cal-cell" style={{
+                  background: cell ? ha(accentFg, 0.17) : ha(accentFg, 0.06),
+                  color:      cell ? accentFg           : 'transparent',
+                }}>{cell ?? '·'}</div>
               ))}
             </div>
-            <div className="db-chart-baseline" style={{ background: ha(border, 0.5) }} />
+          ))}
+          <div className="db2-cal-scale" style={{ borderTop: `1px solid ${ha(accentFg, 0.15)}` }}>
+            {['0.0','0.1','0.2','1.0','1.5','2.0'].map(s => (
+              <span key={s} style={{ color: ha(accentFg, 0.42), fontFamily: 'DM Mono, monospace', fontSize: 7 }}>{s}</span>
+            ))}
+          </div>
+          <div className="db2-cal-tickers" style={{ borderTop: `1px solid ${ha(accentFg, 0.15)}` }}>
+            {['0.34 BNB','1.9 SOL','0.09 BTC','0.8 ETH'].map(t => (
+              <span key={t} style={{ color: ha(accentFg, 0.68), fontFamily: 'DM Mono, monospace', fontSize: 7 }}>{t}</span>
+            ))}
           </div>
         </div>
 
-        {/* Bottom row */}
-        <div className="db-bottom">
+        {/* Savings card */}
+        <div className="db2-savings" style={{ background: cardBg, border: `1px solid ${ha(border, 0.22)}` }}>
+          <div className="db2-card-hd">
+            <div>
+              <div className="db2-card-title" style={{ color: pageText }}>Wow, Great!</div>
+              <div style={{ color: ha(muted, 0.55), fontSize: 9 }}>Saved $990 this month</div>
+            </div>
+            <div className="db2-select-pill" style={{ border: `1px solid ${ha(border, 0.45)}`, color: ha(pageText, 0.75) }}>
+              Saving ▾
+            </div>
+          </div>
+          <div className="db2-line-wrap">
+            <svg viewBox="0 0 220 68" preserveAspectRatio="none" width="100%" height="100%">
+              <defs>
+                <linearGradient id="db2-savlg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={primary} stopOpacity="0.22" />
+                  <stop offset="100%" stopColor={primary} stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <path d="M0,52 C22,50 33,42 54,36 C74,30 84,48 108,42 C128,37 138,22 158,26 C173,29 183,17 220,15 L220,68 L0,68Z"
+                fill="url(#db2-savlg)" />
+              <path d="M0,52 C22,50 33,42 54,36 C74,30 84,48 108,42 C128,37 138,22 158,26 C173,29 183,17 220,15"
+                stroke={primary} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+              <circle cx="158" cy="26" r="3" fill={accent} />
+              <rect x="145" y="11" width="28" height="13" rx="3" fill={accent} />
+              <text x="159" y="21" textAnchor="middle" fontSize="6.5" fill={accentFg}
+                fontFamily="DM Mono, monospace" fontWeight="600">$990</text>
+            </svg>
+          </div>
+          <div className="db2-chart-months" style={{ color: ha(muted, 0.40) }}>
+            {['Jan','Feb','Mar','Apr','May','Jun'].map(m => <span key={m}>{m}</span>)}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Col 3: earnings + micro grid ──────────────────────── */}
+      <div className="db2-col">
+
+        {/* Earnings card */}
+        <div className="db2-earnings" style={{ background: cardBg, border: `1px solid ${ha(border, 0.22)}` }}>
+          <div style={{ color: ha(muted, 0.55), fontSize: 9, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Earnings</div>
+          <div style={{ color: pageText, fontSize: 23, fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1.1, marginTop: 2 }}>$8,498</div>
+          <span className="db2-badge" style={{ background: ha(accent, 0.16), color: accent, alignSelf: 'flex-start', marginTop: 3 }}>+1.6%</span>
+          <div style={{ color: ha(muted, 0.42), fontSize: 9, marginTop: 3 }}>Compared to Last Month, 28 Sep</div>
+
+          {/* 3-metric row */}
+          <div className="db2-metrics-row" style={{ borderTop: `1px solid ${ha(border, 0.18)}`, borderBottom: `1px solid ${ha(border, 0.18)}` }}>
+            {[
+              { v: '$2,268', sub: 'USD Target', c: pageText   },
+              { v: '-0,260', sub: 'Difference', c: secondary  },
+              { v: '+0,99',  sub: 'Goals',      c: accent     },
+            ].map(({ v, sub, c }) => (
+              <div key={sub} className="db2-metric-cell">
+                <span style={{ color: c, fontSize: 10, fontWeight: 700 }}>{v}</span>
+                <span style={{ color: ha(muted, 0.42), fontSize: 8 }}>{sub}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Bar chart */}
+          <div className="db2-earnings-bars">
+            {earningsH.map((h, i) => (
+              <div key={i} style={{ width: 4, height: `${h}%`, background: ha(muted, 0.26), borderRadius: 2, flexShrink: 0 }} />
+            ))}
+          </div>
+          <div className="db2-date-labels" style={{ color: ha(muted, 0.38) }}>
+            {['12 Aug','19 Sep','26 Oct'].map(d => <span key={d}>{d}</span>)}
+          </div>
+
+          {/* Stat pills */}
+          <div className="db2-stat-pills">
+            {[
+              { v: '23°',    label: 'Success Rate',    c: accent    },
+              { v: '19 m/s', label: 'Goes Up %',       c: secondary },
+              { v: '64%',    label: 'Positive',        c: primary   },
+            ].map(({ v, label, c }) => (
+              <div key={label} className="db2-stat-pill" style={{ border: `1px solid ${ha(border, 0.28)}` }}>
+                <span style={{ color: pageText, fontSize: 10, fontWeight: 700 }}>{v}</span>
+                <span style={{ color: c, fontSize: 8 }}>⊕</span>
+                <span style={{ color: ha(muted, 0.42), fontSize: 7 }}>{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Micro cards 2×2 */}
+        <div className="db2-micro-grid">
           {[
-            { title: 'Recent Activity', items: ['Homepage redesign', 'API integration', 'User research', 'Sprint planning'] },
-            { title: 'Upcoming Tasks',  items: ['Design review',    'Staging deploy',  'QA testing',    'Client demo']      },
-          ].map(({ title, items }, ci) => (
-            <div key={title} className="db-list-card"
-              style={{ background: surface, border: `1px solid ${ha(border, 0.35)}` }}>
-              <span className="db-list-title" style={{ color: pageText }}>{title}</span>
-              {items.map((item, ii) => (
-                <div key={item} className="db-list-item">
-                  <span className="db-list-dot" style={{
-                    background: [primary, accent, secondary, muted][ii % 4],
-                  }} />
-                  <span className="db-list-text" style={{ color: ha(pageText, 0.75) }}>{item}</span>
+            { label: 'Business\nCosts',  value: '4.9k', sub: '28.3%', bars: [40,65,30,55,45,70], bg: surface                  },
+            { label: 'Travel\nCosts',    value: '2.5k', sub: '42.7%', bars: [35,50,80,45,60,40], bg: ha(primary,   0.12)      },
+            { label: 'Saving\nMonthly',  value: null,   sub: null,    bars: [55,70,45,85,60,75], bg: ha(secondary, 0.12)      },
+            { label: '$0.8',             value: null,   sub: '7.9%',  bars: [40,55,65,50,70,45], bg: ha(muted,     0.10)      },
+          ].map(({ label, value, sub, bars, bg }) => (
+            <div key={label} className="db2-micro-card"
+              style={{ background: bg, border: `1px solid ${ha(border, 0.20)}` }}>
+              <div style={{ color: ha(pageText, 0.72), fontSize: 8.5, fontWeight: 600, whiteSpace: 'pre-line', lineHeight: 1.35 }}>
+                {label}
+              </div>
+              <div className="db2-micro-bars">
+                {bars.map((h, i) => (
+                  <div key={i} style={{ width: 3, height: `${h}%`, background: ha(primary, 0.42), borderRadius: 1, flexShrink: 0 }} />
+                ))}
+              </div>
+              {(value || sub) && (
+                <div style={{ color: pageText, fontSize: value ? 14 : 10, fontWeight: 800, letterSpacing: '-0.02em' }}>
+                  {value ?? sub}
                 </div>
-              ))}
+              )}
+              {value && sub && (
+                <div style={{ color: ha(muted, 0.45), fontSize: 7.5 }}>{sub}</div>
+              )}
             </div>
           ))}
         </div>
       </div>
+
     </div>
   )
 }
