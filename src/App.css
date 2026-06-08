@@ -2979,3 +2979,170 @@
   align-self: flex-start;
   margin-top: 4px;
 }
+
+/* ── Flight Cards preview ──────────────────────────────────── */
+.fc-page {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 28px;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.fc-pair {
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ── Shared card shell ── */
+.fc-card {
+  width: 220px;
+  border-radius: 28px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* ── Card 1: immersive ── */
+.fc-card--immersive {
+  position: relative;
+  height: 420px;
+  box-shadow: 0 24px 56px rgba(0,0,0,0.28), 0 4px 12px rgba(0,0,0,0.12);
+}
+
+.fc-bg-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fc-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.fc-heart-top {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.22);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.fc-immersive-body {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  padding: 18px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* ── Card 2: raised ── */
+.fc-card--raised {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.fc-img-frame {
+  margin: 10px 10px 0;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.fc-top-img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+.fc-raised-body {
+  padding: 12px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.fc-raised-footer {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+/* ── Shared typography ── */
+.fc-city {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+
+.fc-class {
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.fc-meta {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.fc-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Search button ── */
+.fc-search-btn {
+  border: none;
+  border-radius: 100px;
+  padding: 13px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  font-family: inherit;
+}
+
+.fc-search-btn--flex {
+  flex: 1;
+  width: auto;
+}
+
+/* ── Heart circle (card 2) ── */
+.fc-heart-circle {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}

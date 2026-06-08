@@ -1312,108 +1312,100 @@ function BrandPreview({ palette, roles = {}, uiBg = 'light' }) {
 }
 
 // ── Cards preview ─────────────────────────────────────────────────────────────
+const FC_NYC = 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?auto=format&fit=crop&w=600&q=80'
+const FC_SF  = 'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=600&q=80'
+
+function HeartIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  )
+}
+function TagIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+      <line x1="7" y1="7" x2="7.01" y2="7"/>
+    </svg>
+  )
+}
+function PlaneIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21 4 19.5 2.5c-1.5-1.5-3.5-1.5-5 0L11 6 2.8 4.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 5.8 7.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z"/>
+    </svg>
+  )
+}
+
 function CardsPreview({ palette, roles = {}, uiBg = 'light' }) {
   if (!palette.length) return <div className="lp-empty">Load an image to see a preview</div>
-  const byRole = makeByRole(palette, roles)
-  const bgColor  = byRole('background', palette.length - 1)
-  const textCol  = byRole('text',       0)
-  const primary  = byRole('primary',    Math.min(1, palette.length - 1))
-  const secondary= byRole('secondary',  Math.min(2, palette.length - 1))
-  const accent   = byRole('accent',     Math.min(3, palette.length - 1))
-  const surface  = byRole('surface',    Math.min(4, palette.length - 1))
-  const muted    = byRole('muted',      Math.min(5, palette.length - 1))
-  const border   = byRole('border',     Math.min(6, palette.length - 1))
+  const byRole   = makeByRole(palette, roles)
+  const bgColor  = byRole('background', palette[palette.length - 1])
+  const textCol  = byRole('text',       palette[0])
+  const primary  = byRole('primary',    palette[Math.min(1, palette.length - 1)])
+  const secondary= byRole('secondary',  palette[Math.min(2, palette.length - 1)])
+  const accent   = byRole('accent',     palette[Math.min(3, palette.length - 1)])
+  const surface  = byRole('surface',    palette[Math.min(4, palette.length - 1)])
+  const muted    = byRole('muted',      palette[Math.min(5, palette.length - 1)])
 
-  const pageBg   = uiBg === 'dark' ? textCol  : bgColor
-  const pageText = uiBg === 'dark' ? bgColor  : textCol
-  const primaryFg = readableText(primary)
-  const secondaryFg = readableText(secondary)
-  const accentFg = readableText(accent)
+  const pageBg   = uiBg === 'dark' ? '#111' : '#EEEEF0'
+  const pageText = uiBg === 'dark' ? bgColor : textCol
 
-  // Derive a warning-ish color from secondary and error-ish from a warm hue
-  const { L: sL, C: sC, H: sH } = hexToOklch(secondary)
-  const warnCol  = oklchToHex(sL, sC * 0.9, ((sH + 30) % 360))
-  const errorCol = oklchToHex(Math.max(0.35, sL * 0.9), Math.max(sC, 0.12), 25) // red-ish
+  // Card 1 overlay gradient uses primary
+  const overlayGrad = `linear-gradient(to bottom, transparent 25%, ${ha(primary, 0.55)} 65%, ${ha(primary, 0.88)} 100%)`
+  // Card 2 search button uses secondary; heart uses accent
+  const sfBtnFg  = readableText(secondary)
+  const heartBg  = ha(accent, 0.14)
 
   return (
-    <div className="cv" style={{ background: pageBg }}>
-      <div className="cv-grid">
+    <div className="fc-page" style={{ background: pageBg }}>
+      <div className="fc-pair">
 
-        {/* Buttons row */}
-        <div className="cv-section-label" style={{ color: ha(muted, 0.7) }}>Buttons</div>
-        <div className="cv-row">
-          <button className="cv-btn" style={{ background: primary,   color: primaryFg,   border: 'none' }}>Primary</button>
-          <button className="cv-btn cv-btn--outline" style={{ border: `1.5px solid ${secondary}`, color: secondary, background: 'transparent' }}>Secondary</button>
-          <button className="cv-btn" style={{ background: ha(pageText, 0.10), color: ha(pageText, 0.35), border: 'none' }}>Disabled</button>
-          <button className="cv-btn cv-btn--icon" style={{ background: accent, color: accentFg, border: 'none' }}>✦</button>
-        </div>
-
-        {/* Inputs row */}
-        <div className="cv-section-label" style={{ color: ha(muted, 0.7) }}>Inputs</div>
-        <div className="cv-row">
-          <input readOnly className="cv-input" placeholder="Default input"
-            style={{ border: `1px solid ${ha(border, 0.6)}`, color: pageText, background: surface }} />
-          <input readOnly className="cv-input cv-input--focused" placeholder="Focused"
-            style={{ border: `1.5px solid ${primary}`, color: pageText, background: surface,
-              boxShadow: `0 0 0 3px ${ha(primary, 0.18)}` }} />
-          <input readOnly className="cv-input" placeholder="Error state"
-            style={{ border: `1.5px solid ${errorCol}`, color: pageText, background: surface }} />
-        </div>
-
-        {/* Badges row */}
-        <div className="cv-section-label" style={{ color: ha(muted, 0.7) }}>Badges</div>
-        <div className="cv-row">
-          {[
-            { label: 'Primary',   bg: primary,   fg: primaryFg   },
-            { label: 'Secondary', bg: secondary,  fg: secondaryFg },
-            { label: 'Accent',    bg: accent,     fg: accentFg    },
-            { label: 'Outlined',  bg: 'transparent', fg: border, outline: border },
-          ].map(({ label, bg, fg, outline }) => (
-            <span key={label} className="cv-badge"
-              style={{ background: bg, color: fg,
-                border: outline ? `1px solid ${outline}` : 'none' }}>
-              {label}
-            </span>
-          ))}
-        </div>
-
-        {/* Alerts row */}
-        <div className="cv-section-label" style={{ color: ha(muted, 0.7) }}>Alerts</div>
-        <div className="cv-alerts">
-          {[
-            { label: 'Success — Operation completed',  color: accent    },
-            { label: 'Warning — Review required',      color: warnCol   },
-            { label: 'Error — Something went wrong',   color: errorCol  },
-            { label: 'Info — Update available',        color: primary   },
-          ].map(({ label, color }) => (
-            <div key={label} className="cv-alert"
-              style={{ background: surface, borderLeft: `3px solid ${color}`,
-                border: `1px solid ${ha(border, 0.35)}`, borderLeftWidth: 3 }}>
-              <span className="cv-alert-dot" style={{ background: color }} />
-              <span className="cv-alert-text" style={{ color: pageText }}>{label}</span>
+        {/* ── Card 1: New York — immersive full-bleed ── */}
+        <div className="fc-card fc-card--immersive">
+          <img className="fc-bg-img" src={FC_NYC} alt="New York City" />
+          <div className="fc-overlay" style={{ background: overlayGrad }} />
+          <button className="fc-heart-top" aria-label="Save">
+            <HeartIcon size={17} />
+          </button>
+          <div className="fc-immersive-body">
+            <div className="fc-city" style={{ color: '#fff' }}>New York</div>
+            <div className="fc-class" style={{ color: 'rgba(255,255,255,0.72)' }}>Economy</div>
+            <div className="fc-meta" style={{ color: 'rgba(255,255,255,0.85)' }}>
+              <span className="fc-meta-item"><TagIcon /> from <strong>$120</strong></span>
+              <span className="fc-meta-item"><PlaneIcon /> JFK</span>
             </div>
-          ))}
+            <button className="fc-search-btn" style={{ background: '#fff', color: textCol }}>
+              Search flight
+            </button>
+          </div>
         </div>
 
-        {/* Cards row */}
-        <div className="cv-section-label" style={{ color: ha(muted, 0.7) }}>Cards</div>
-        <div className="cv-row">
-          {[
-            { strip: primary,   title: 'Primary Card',   body: 'This card uses the primary role for its accent strip and CTA.' },
-            { strip: secondary, title: 'Secondary Card',  body: 'Secondary color provides contrast while staying harmonious.' },
-          ].map(({ strip, title, body }) => (
-            <div key={title} className="cv-card"
-              style={{ background: surface, border: `1px solid ${ha(border, 0.4)}` }}>
-              <div className="cv-card-strip" style={{ background: strip }} />
-              <div className="cv-card-body">
-                <span className="cv-card-title" style={{ color: pageText }}>{title}</span>
-                <span className="cv-card-desc"  style={{ color: ha(muted, 0.8) }}>{body}</span>
-                <button className="cv-card-btn" style={{ background: strip, color: readableText(strip), border: 'none' }}>
-                  Learn more
-                </button>
-              </div>
+        {/* ── Card 2: San Francisco — raised card ── */}
+        <div className="fc-card fc-card--raised" style={{ background: surface }}>
+          <div className="fc-img-frame">
+            <img className="fc-top-img" src={FC_SF} alt="San Francisco Golden Gate" />
+          </div>
+          <div className="fc-raised-body">
+            <div className="fc-city" style={{ color: pageText }}>San Francisco</div>
+            <div className="fc-class" style={{ color: ha(muted, 0.65) }}>Premium economy</div>
+            <div className="fc-meta" style={{ color: ha(pageText, 0.65) }}>
+              <span className="fc-meta-item"><TagIcon /> from <strong style={{ color: pageText }}>$240</strong></span>
+              <span className="fc-meta-item"><PlaneIcon /> SFO</span>
             </div>
-          ))}
+            <div className="fc-raised-footer">
+              <button className="fc-search-btn fc-search-btn--flex" style={{ background: secondary, color: sfBtnFg }}>
+                Search flight
+              </button>
+              <button className="fc-heart-circle" style={{ background: heartBg, color: accent }} aria-label="Save">
+                <HeartIcon size={15} />
+              </button>
+            </div>
+          </div>
         </div>
 
       </div>
