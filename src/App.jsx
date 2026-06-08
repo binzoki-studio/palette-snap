@@ -2170,13 +2170,6 @@ export default function App() {
                   <circle cx="16" cy="16" r="1.5" fill="currentColor"/>
                 </svg>
               </button>
-              {preview && !imageOpen && (
-                <button
-                  className="panel-action"
-                  onClick={e => { e.stopPropagation(); resetToInput() }}
-                  title="Change image"
-                >↺</button>
-              )}
               <svg
                 className={`accord-chevron ${imageOpen ? 'accord-chevron--open' : ''}`}
                 width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"
@@ -2311,12 +2304,6 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Change image action (visible when open) */}
-                {preview && (
-                  <div className="image-reset-row">
-                    <button className="image-reset-btn" onClick={resetToInput}>↺ change image</button>
-                  </div>
-                )}
               </div>
             )}
           </div>
