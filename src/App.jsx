@@ -1818,15 +1818,14 @@ export default function App() {
     setUrlError(null)
   }
 
-  // ── Random image from Unsplash ───────────────────────────────────────────
-  // source.unsplash.com/random redirects to the full CDN URL including the
-  // ixid auth token, so CORS works on the final response. The `sig` param
-  // busts the cache so each click returns a different photo.
+  // ── Random image ─────────────────────────────────────────────────────────
+  // picsum.photos serves high-quality photos with Access-Control-Allow-Origin:*
+  // Seeding with a random integer guarantees a different image every click.
   const handleRandomImage = async () => {
     setUrlError(null)
     setUrlLoading(true)
-    const sig = Math.floor(Math.random() * 1e9)
-    const url = `https://source.unsplash.com/random/1200x800?sig=${sig}`
+    const seed = Math.floor(Math.random() * 1e6)
+    const url  = `https://picsum.photos/seed/${seed}/1200/800`
     try {
       const res = await fetch(url, { mode: 'cors' })
       if (!res.ok) throw new Error(`http-${res.status}`)
