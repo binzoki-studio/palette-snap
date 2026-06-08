@@ -682,129 +682,10 @@ function ShieldIcon() {
   )
 }
 
-// ── Landing page preview ──────────────────────────────────────────────────────
-// 8-digit hex: append alpha byte (00–ff) to a 6-char #rrggbb
+// ── ha: 8-digit hex helper ─────────────────────────────────────────────────────
+// Appends an alpha byte (00–ff) to a 6-char #rrggbb
 function ha(hex, alpha) {
   return hex + Math.round(alpha * 255).toString(16).padStart(2, '0')
-}
-
-function LandingPreview({ palette, roles = {}, uiBg = 'light' }) {
-  if (!palette.length) return (
-    <div className="lp-empty">Load an image to see a preview</div>
-  )
-  const byRole = (role, fallbackIdx) => {
-    const entry = Object.entries(roles).find(([, r]) => r === role)
-    return entry ? (palette[+entry[0]] ?? palette[fallbackIdx ?? 0]) : palette[fallbackIdx ?? 0]
-  }
-  const bgColor   = byRole('background', palette.length - 1)
-  const textCol   = byRole('text',       0)
-  const primary   = byRole('primary',    Math.min(1, palette.length - 1))
-  const secondary = byRole('secondary',  Math.min(2, palette.length - 1))
-  const accent    = byRole('accent',     Math.min(3, palette.length - 1))
-  const surface   = byRole('surface',    Math.min(4, palette.length - 1))
-  const muted     = byRole('muted',      Math.min(5, palette.length - 1))
-  const border    = byRole('border',     Math.min(6, palette.length - 1))
-  const pageBg    = uiBg === 'dark' ? textCol  : bgColor
-  const pageText  = uiBg === 'dark' ? bgColor  : textCol
-  const primaryFg = readableText(primary)
-
-  // Darkest and lightest raw colors for footer
-  const sortedByLum = [...palette].sort((a, b) => getLuminance(a) - getLuminance(b))
-  const darkest  = sortedByLum[0]
-  const lightest = sortedByLum[sortedByLum.length - 1]
-
-  return (
-    <div className="lp" style={{ background: pageBg }}>
-      {/* Navbar */}
-      <nav className="lp-nav" style={{ borderBottom: `0.5px solid ${ha(secondary, 0.35)}` }}>
-        <div className="lp-nav-logo">
-          <span className="lp-logo-dot" style={{ background: primary }} />
-          <span className="lp-logo-text" style={{ color: pageText }}>Brand</span>
-        </div>
-        <div className="lp-nav-links">
-          {['Features', 'Pricing', 'Docs'].map(l => (
-            <span key={l} className="lp-nav-link" style={{ color: ha(pageText, 0.52) }}>{l}</span>
-          ))}
-        </div>
-        <button className="lp-nav-cta" style={{ background: primary, color: primaryFg }}>
-          Get Started
-        </button>
-      </nav>
-
-      {/* Hero */}
-      <section className="lp-hero" style={{ background: pageBg }}>
-        <h1 className="lp-heading" style={{ color: pageText }}>
-          Build something beautiful
-        </h1>
-        <p className="lp-subtext" style={{ color: ha(pageText, 0.65) }}>
-          Your palette applied to a real interface. Every color, in context.
-        </p>
-        <div className="lp-hero-btns">
-          <button className="lp-btn-primary" style={{ background: primary, color: primaryFg }}>
-            Get Started Free
-          </button>
-          <button className="lp-btn-ghost" style={{ border: `1.5px solid ${primary}`, color: primary }}>
-            See how it works
-          </button>
-        </div>
-      </section>
-
-      {/* Feature cards */}
-      <section className="lp-features" style={{ background: ha(muted, 0.12) }}>
-        {[
-          { dot: primary,   title: 'Smart Extraction', desc: 'Pull the best colors from any image automatically.' },
-          { dot: accent,    title: 'Accessibility',     desc: 'WCAG contrast checks built right in.' },
-          { dot: secondary, title: 'Export Ready',      desc: 'CSS, Tailwind, JSON, SCSS — one click.' },
-        ].map(({ dot, title, desc }) => (
-          <div key={title} className="lp-card"
-            style={{ background: surface, border: `1px solid ${ha(border, 0.40)}` }}>
-            <span className="lp-card-icon" style={{ background: dot }} />
-            <span className="lp-card-title" style={{ color: pageText }}>{title}</span>
-            <span className="lp-card-desc" style={{ color: ha(muted, 0.85) }}>{desc}</span>
-          </div>
-        ))}
-      </section>
-
-      {/* Pricing section */}
-      <section className="lp-pricing" style={{ background: pageBg }}>
-        <h2 className="lp-section-heading" style={{ color: pageText }}>Simple pricing</h2>
-        <div className="lp-pricing-card" style={{ background: surface, border: `1px solid ${ha(border, 0.40)}` }}>
-          <div className="lp-price" style={{ color: primary }}>$12<span className="lp-price-unit" style={{ color: ha(muted, 0.8) }}>/mo</span></div>
-          <ul className="lp-feature-list">
-            {['Unlimited palettes', 'All export formats', 'Priority support', 'Team sharing'].map(f => (
-              <li key={f} className="lp-feature-item">
-                <span className="lp-check" style={{ color: accent }}>✓</span>
-                <span style={{ color: ha(pageText, 0.80) }}>{f}</span>
-              </li>
-            ))}
-          </ul>
-          <button className="lp-btn-primary" style={{ background: primary, color: primaryFg, width: '100%' }}>
-            Get Started
-          </button>
-        </div>
-      </section>
-
-      {/* Newsletter section */}
-      <section className="lp-newsletter" style={{ background: ha(muted, 0.08) }}>
-        <h2 className="lp-section-heading" style={{ color: pageText }}>Stay in the loop</h2>
-        <p className="lp-subtext" style={{ color: ha(pageText, 0.55) }}>Design tips and palette inspiration, weekly.</p>
-        <div className="lp-newsletter-row">
-          <input readOnly className="lp-newsletter-input" placeholder="you@example.com"
-            style={{ border: `1px solid ${ha(border, 0.55)}`, color: ha(pageText, 0.7), background: surface }} />
-          <button className="lp-newsletter-btn" style={{ background: primary, color: primaryFg }}>Subscribe</button>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="lp-footer" style={{ background: darkest }}>
-        <span className="lp-footer-dot" style={{ background: primary }} />
-        <span className="lp-footer-text" style={{ color: ha(lightest, 0.72) }}>Made with PaletteSnap</span>
-      </footer>
-
-      {/* Scroll hint */}
-      <div className="lp-scroll-hint" style={{ color: ha(pageText, 0.30) }}>scroll to see more ↓</div>
-    </div>
-  )
 }
 
 // ── Shared byRole helper factory ─────────────────────────────────────────────
@@ -813,6 +694,178 @@ function makeByRole(palette, roles) {
     const entry = Object.entries(roles).find(([, r]) => r === role)
     return entry ? (palette[+entry[0]] ?? palette[fallbackIdx]) : palette[Math.min(fallbackIdx, palette.length - 1)]
   }
+}
+
+// ── Social card preview (default template) ────────────────────────────────────
+function SocialPreview({ palette, roles = {}, uiBg = 'light' }) {
+  if (!palette.length) return <div className="lp-empty">Load an image to see a preview</div>
+
+  const byRole = makeByRole(palette, roles)
+  const bgColor  = byRole('background', palette.length - 1)
+  const textCol  = byRole('text',       0)
+  const primary  = byRole('primary',    Math.min(1, palette.length - 1))
+  const secondary= byRole('secondary',  Math.min(2, palette.length - 1))
+  const accent   = byRole('accent',     Math.min(3, palette.length - 1))
+  const surface  = byRole('surface',    Math.min(4, palette.length - 1))
+  const muted    = byRole('muted',      Math.min(5, palette.length - 1))
+  const border   = byRole('border',     Math.min(6, palette.length - 1))
+
+  // Dark mode: card 1 & 3 invert bg/text for drama
+  const c1Bg   = uiBg === 'dark' ? textCol  : bgColor
+  const c1Text = uiBg === 'dark' ? bgColor  : textCol
+  const c3Bg   = uiBg === 'dark' ? textCol  : secondary
+  const c3Text = uiBg === 'dark' ? bgColor  : textCol
+
+  const primaryFg  = readableText(primary)
+  const secondaryFg= readableText(secondary)
+
+  // Swipe footer component
+  const SwipeHint = ({ color }) => (
+    <div className="sc-swipe">
+      <span style={{ color }}>∧</span>
+      <span className="sc-swipe-label" style={{ color }}>SWIPE TO READ MORE</span>
+    </div>
+  )
+
+  // Logo row component
+  const LogoRow = ({ dotBg, dotFg, textColor, mutedColor }) => (
+    <div className="sc-logo-row">
+      <div className="sc-logo-left">
+        <div className="sc-logo-circle" style={{ background: dotBg }}>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill={dotFg}>
+            <circle cx="5" cy="5" r="3.5"/>
+          </svg>
+        </div>
+        <div className="sc-logo-meta">
+          <span className="sc-logo-handle" style={{ color: textColor }}>@brand</span>
+          <span className="sc-logo-time"   style={{ color: mutedColor }}>5m ago</span>
+        </div>
+      </div>
+      <div className="sc-three-dots" style={{ color: mutedColor }}>···</div>
+    </div>
+  )
+
+  // Swatch rotations for card 3
+  const swatchData = [
+    { rot: -4,  top: '8%',  left: '10%', w: 72, h: 44, z: 1 },
+    { rot:  3,  top: '12%', left: '42%', w: 64, h: 48, z: 2 },
+    { rot: -2,  top: '30%', left: '22%', w: 80, h: 40, z: 3 },
+    { rot:  5,  top: '28%', left: '55%', w: 60, h: 46, z: 2 },
+    { rot: -3,  top: '48%', left: '8%',  w: 68, h: 38, z: 1 },
+    { rot:  2,  top: '44%', left: '50%', w: 76, h: 42, z: 3 },
+  ]
+
+  // Outer tray background
+  const trayBg = uiBg === 'dark'
+    ? `linear-gradient(135deg, ${ha(textCol, 0.08)} 0%, ${ha(surface, 0.12)} 100%)`
+    : `linear-gradient(135deg, ${ha(surface, 0.35)} 0%, ${ha(muted, 0.10)} 100%)`
+
+  return (
+    <div className="sc-tray" style={{ background: trayBg }}>
+
+      {/* ── Card 1: Content card ─────────────────────────── */}
+      <div className="sc-card" style={{ background: c1Bg, border: `1px solid ${ha(border, 0.45)}` }}>
+        <LogoRow
+          dotBg={primary} dotFg={primaryFg}
+          textColor={ha(c1Text, 0.85)} mutedColor={ha(muted, 0.75)}
+        />
+
+        {/* Heading */}
+        <h2 className="sc-serif-heading" style={{ color: c1Text, marginTop: 18 }}>
+          Crafted with intention, built for impact.
+        </h2>
+
+        {/* Body */}
+        <p className="sc-body" style={{ color: ha(muted, 0.80) }}>
+          Every color tells a story. Extract yours from any image and build a system that works.
+        </p>
+
+        {/* Spacer pushes blob + footer down */}
+        <div style={{ flex: 1 }} />
+
+        {/* Organic blob — bottom right */}
+        <div className="sc-blob-wrap">
+          <svg viewBox="0 0 120 120" className="sc-blob" aria-hidden="true">
+            <path
+              d="M60,10 C80,8 100,22 110,42 C122,65 115,90 96,104 C76,118 48,115 30,100 C10,84 5,58 14,38 C24,16 40,12 60,10Z"
+              fill={ha(accent, 0.38)}
+            />
+          </svg>
+        </div>
+
+        <SwipeHint color={ha(muted, 0.55)} />
+      </div>
+
+      {/* ── Card 2: Typography card ──────────────────────── */}
+      <div className="sc-card sc-card--primary" style={{ background: primary }}>
+        {/* Decorative circles — behind everything */}
+        {[380, 280, 200, 140, 90].map((size, i) => (
+          <div key={i} className="sc-deco-circle" style={{
+            width: size, height: size,
+            borderRadius: '50%',
+            border: `1px solid ${ha(bgColor, 0.14)}`,
+            top: `${[-30, 10, 40, 55, 65][i]}%`,
+            left: `${[-40, -20, 15, 35, 50][i]}%`,
+          }} />
+        ))}
+
+        <LogoRow
+          dotBg={ha(bgColor, 0.90)} dotFg={primary}
+          textColor={ha(bgColor, 0.80)} mutedColor={ha(bgColor, 0.55)}
+        />
+
+        {/* Hashtags */}
+        <div className="sc-tags" style={{ color: ha(bgColor, 0.65) }}>
+          {['#design', '#color', '#system'].map(t => (
+            <span key={t} className="sc-tag">{t}</span>
+          ))}
+        </div>
+
+        {/* Centered heading */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+          <h2 className="sc-serif-heading sc-serif-heading--lg" style={{ color: bgColor }}>
+            From image to design system in seconds.
+          </h2>
+        </div>
+
+        <SwipeHint color={ha(bgColor, 0.55)} />
+      </div>
+
+      {/* ── Card 3: Swatch composition card ─────────────── */}
+      <div className="sc-card" style={{ background: c3Bg, border: `1px solid ${ha(border, 0.30)}` }}>
+        <LogoRow
+          dotBg={ha(c3Text, 0.20)} dotFg={c3Text}
+          textColor={ha(c3Text, 0.80)} mutedColor={ha(c3Text, 0.50)}
+        />
+
+        {/* Swatch composition */}
+        <div className="sc-swatches">
+          {swatchData.map(({ rot, top, left, w, h, z }, i) => (
+            <div key={i} className="sc-swatch-pill" style={{
+              background: palette[i % palette.length],
+              width: w, height: h,
+              top, left,
+              transform: `rotate(${rot}deg)`,
+              zIndex: z,
+              boxShadow: `0 4px 14px ${ha(textCol, 0.18)}`,
+            }} />
+          ))}
+        </div>
+
+        {/* Text below swatches */}
+        <h3 className="sc-serif-heading sc-serif-heading--md" style={{ color: c3Text, marginTop: 8 }}>
+          The right palette, in the right context, changes everything.
+        </h3>
+        <p className="sc-body sc-body--sm" style={{ color: ha(c3Text, 0.60) }}>
+          Extract, refine, and export production-ready color systems.
+        </p>
+
+        <div style={{ flex: 1 }} />
+        <SwipeHint color={ha(c3Text, 0.45)} />
+      </div>
+
+    </div>
+  )
 }
 
 // ── Dashboard preview ─────────────────────────────────────────────────────────
@@ -1227,7 +1280,7 @@ export default function App() {
   const [extractionInfo, setExtractionInfo] = useState(null) // { candidates, selected }
 
   // ── Sprint 2.8 state ─────────────────────────────────────────────────────
-  const [previewTemplate, setPreviewTemplate] = useState('landing')
+  const [previewTemplate, setPreviewTemplate] = useState('social')
 
   // ── Panel resize state ───────────────────────────────────────────────────
   const [panelWidths, setPanelWidthsState] = useState({ left: 340, right: 280 })
@@ -2053,7 +2106,7 @@ export default function App() {
                 {/* Template switcher pills */}
                 <div className="preview-tpl-switcher">
                   {[
-                    { id: 'landing',   label: 'landing'   },
+                    { id: 'social',    label: 'social'    },
                     { id: 'dashboard', label: 'dashboard' },
                     { id: 'poster',    label: 'poster'    },
                     { id: 'brand',     label: 'brand'     },
@@ -2087,7 +2140,7 @@ export default function App() {
               <div className="preview-scroll" style={activePanelFilter}>
                 {palette.length > 0 ? (
                   <>
-                    {previewTemplate === 'landing'   && <LandingPreview   palette={palette} roles={roles} uiBg={uiBg} />}
+                    {previewTemplate === 'social'    && <SocialPreview    palette={palette} roles={roles} uiBg={uiBg} />}
                     {previewTemplate === 'dashboard' && <DashboardPreview palette={palette} roles={roles} uiBg={uiBg} />}
                     {previewTemplate === 'poster'    && <PosterPreview    palette={palette} roles={roles} uiBg={uiBg} />}
                     {previewTemplate === 'brand'     && <BrandPreview     palette={palette} roles={roles} uiBg={uiBg} />}

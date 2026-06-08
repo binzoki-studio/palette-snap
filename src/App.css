@@ -1916,6 +1916,175 @@
   color: #E8E8E6;
 }
 
+/* ── Social card template ────────────────────────────────── */
+.sc-tray {
+  display: flex;
+  gap: 14px;
+  padding: 20px 18px;
+  min-height: 100%;
+  box-sizing: border-box;
+  align-items: stretch;
+}
+
+.sc-card {
+  flex: 1;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.sc-card--primary {
+  /* no extra border needed — solid bg */
+}
+
+/* Logo row */
+.sc-logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+.sc-logo-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sc-logo-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.sc-logo-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.sc-logo-handle {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+.sc-logo-time {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  line-height: 1;
+}
+.sc-three-dots {
+  font-size: 14px;
+  letter-spacing: 1px;
+  line-height: 1;
+}
+
+/* Headings */
+.sc-serif-heading {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.22;
+  margin: 0;
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+.sc-serif-heading--lg {
+  font-size: 1.65rem;
+  text-align: center;
+}
+.sc-serif-heading--md {
+  font-size: 1.15rem;
+}
+
+/* Body text */
+.sc-body {
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 8px 0 0;
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+.sc-body--sm {
+  font-size: 11px;
+}
+
+/* Blob — card 1 */
+.sc-blob-wrap {
+  position: absolute;
+  bottom: -20px;
+  right: -20px;
+  width: 120px;
+  height: 120px;
+  z-index: 1;
+  pointer-events: none;
+}
+.sc-blob {
+  width: 100%;
+  height: 100%;
+}
+
+/* Decorative circles — card 2 */
+.sc-deco-circle {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Hashtags — card 2 */
+.sc-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 10px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+.sc-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* Swatch composition — card 3 */
+.sc-swatches {
+  position: relative;
+  height: 130px;
+  flex-shrink: 0;
+  margin-top: 12px;
+}
+.sc-swatch-pill {
+  position: absolute;
+  border-radius: 10px;
+}
+
+/* Swipe hint */
+.sc-swipe {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding-top: 10px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+.sc-swipe-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.15em;
+}
+
 /* ── Landing: pricing + newsletter additions ─────────────── */
 .lp-pricing {
   padding: 40px 24px;
