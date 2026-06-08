@@ -1873,3 +1873,14 @@
   white-space: nowrap;
   margin-left: 2px;
 }
+
+/* ── Extraction quality indicator ───────────────────────── */
+.extraction-info {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: #3E3E46;
+  white-space: nowrap;
+  padding: 0 14px 2px;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}

@@ -176,6 +176,251 @@ function oklchToCss(L, C, H) {
   return `oklch(${L.toFixed(4)} ${C.toFixed(4)} ${H.toFixed(1)})`
 }
 
+// ── Design-system extraction engine ──────────────────────────────────────────
+
+// Perceptual distance in OKLCH (weighted: L×2, C×1.5, H×1)
+function oklchDistance(a, b) {
+  const dL = (a.L - b.L) * 2
+  const dC = (a.C - b.C) * 1.5
+  // Hue is circular — take the shorter arc
+  let dH = Math.abs(a.H - b.H)
+  if (dH > 180) dH = 360 - dH
+  return Math.sqrt(dL * dL + dC * dC + dH * dH)
+}
+
+// Deduplicate: keep the one with higher chroma when two are too similar
+function deduplicateCandidates(candidates, threshold = 12) {
+  const kept = []
+  for (const c of candidates) {
+    let absorbed = false
+    for (let i = 0; i < kept.length; i++) {
+      if (oklchDistance(c.oklch, kept[i].oklch) < threshold) {
+        if (c.oklch.C > kept[i].oklch.C) kept[i] = c
+        absorbed = true
+        break
+      }
+    }
+    if (!absorbed) kept.push(c)
+  }
+  return kept
+}
+
+// Hue difference (0-180)
+function hueDiff(h1, h2) {
+  const d = Math.abs(h1 - h2)
+  return d > 180 ? 360 - d : d
+}
+
+// Clamp L to valid OKLCH range and return hex
+function deriveOklch(L, C, H) {
+  return oklchToHex(Math.max(0, Math.min(1, L)), Math.max(0, C), ((H % 360) + 360) % 360)
+}
+
+// Role priority order for count-aware selection
+const ROLE_PRIORITY = ['text', 'background', 'primary', 'secondary', 'accent', 'surface', 'muted', 'border']
+
+/**
+ * Main extraction engine.
+ * @param {HTMLImageElement|HTMLCanvasElement} source
+ * @param {number} count – requested palette size (3-8)
+ * @param {Set} locks – locked indices
+ * @param {string[]} currentPalette – existing palette (for locked slots)
+ * @returns {{ palette: string[], candidateCount: number }}
+ */
+async function designSystemExtract(source, count, locks, currentPalette) {
+  // ── Step 1: Extract 24 raw candidates ───────────────────────────────────
+  const rawColors = await getPalette(source, { colorCount: 24 })
+  const rawHexes = rawColors.map(c => c.hex())
+  const rawCandidates = rawHexes.map(hex => ({ hex, oklch: hexToOklch(hex) }))
+
+  // ── Step 2: Perceptual deduplication ────────────────────────────────────
+  const deduplicated = deduplicateCandidates(rawCandidates, 12)
+
+  // ── Step 3: Role-aware candidate selection ──────────────────────────────
+  const pool = [...deduplicated]
+  const used = new Set()
+
+  const pickFrom = (predicate, fallback) => {
+    const idx = pool.findIndex((c, i) => !used.has(i) && predicate(c))
+    if (idx !== -1) { used.add(idx); return pool[idx] }
+    if (fallback) { const fb = fallback(); return { hex: fb, oklch: hexToOklch(fb) } }
+    return null
+  }
+
+  // Text: darkest with L < 0.35, else darken darkest to L=0.20
+  const sortedByL = [...pool].sort((a, b) => a.oklch.L - b.oklch.L)
+  let textCandidate = pool.find((c, i) => !used.has(i) && c.oklch.L < 0.35)
+  if (textCandidate) {
+    used.add(pool.indexOf(textCandidate))
+  } else {
+    const darkest = sortedByL[0]
+    const hex = deriveOklch(0.20, darkest.oklch.C, darkest.oklch.H)
+    textCandidate = { hex, oklch: hexToOklch(hex) }
+  }
+
+  // Background: lightest with L > 0.80, else lighten lightest to L=0.95, C≤0.03
+  const sortedByLDesc = [...pool].sort((a, b) => b.oklch.L - a.oklch.L)
+  let bgIdx = pool.findIndex((c, i) => !used.has(i) && c.oklch.L > 0.80)
+  let bgCandidate
+  if (bgIdx !== -1) {
+    used.add(bgIdx)
+    bgCandidate = pool[bgIdx]
+  } else {
+    const lightest = sortedByLDesc[0]
+    const hex = deriveOklch(0.95, Math.min(0.03, lightest.oklch.C), lightest.oklch.H)
+    bgCandidate = { hex, oklch: hexToOklch(hex) }
+  }
+
+  // Primary: highest chroma (C > 0.08 preferred)
+  let primaryCandidate = null
+  {
+    const remaining = pool.filter((_, i) => !used.has(i)).sort((a, b) => b.oklch.C - a.oklch.C)
+    const preferred = remaining.find(c => c.oklch.C > 0.08)
+    primaryCandidate = preferred ?? remaining[0] ?? textCandidate
+    const pi = pool.indexOf(primaryCandidate); if (pi !== -1) used.add(pi)
+  }
+
+  // Secondary: second highest chroma, hue diff ≥ 30° from primary (fallback: second highest chroma)
+  let secondaryCandidate = null
+  {
+    const remaining = pool.filter((_, i) => !used.has(i)).sort((a, b) => b.oklch.C - a.oklch.C)
+    secondaryCandidate = remaining.find(c => hueDiff(c.oklch.H, primaryCandidate.oklch.H) >= 30)
+      ?? remaining[0]
+    if (secondaryCandidate) { const si = pool.indexOf(secondaryCandidate); if (si !== -1) used.add(si) }
+    else secondaryCandidate = primaryCandidate
+  }
+
+  // Accent: highest chroma with hue diff ≥ 60° from primary, else highest chroma remaining
+  let accentCandidate = null
+  {
+    const remaining = pool.filter((_, i) => !used.has(i)).sort((a, b) => b.oklch.C - a.oklch.C)
+    accentCandidate = remaining.find(c => hueDiff(c.oklch.H, primaryCandidate.oklch.H) >= 60)
+      ?? remaining[0]
+    if (accentCandidate) { const ai = pool.indexOf(accentCandidate); if (ai !== -1) used.add(ai) }
+    else accentCandidate = secondaryCandidate
+  }
+
+  // Surface: L 0.25-0.60, C < 0.08 — else derive from bg
+  let surfaceCandidate = null
+  {
+    const match = pool.find((c, i) => !used.has(i) && c.oklch.L >= 0.25 && c.oklch.L <= 0.60 && c.oklch.C < 0.08)
+    if (match) { used.add(pool.indexOf(match)); surfaceCandidate = match }
+    else {
+      const hex = deriveOklch(bgCandidate.oklch.L - 0.08, Math.min(bgCandidate.oklch.C + 0.02, 0.07), bgCandidate.oklch.H)
+      surfaceCandidate = { hex, oklch: hexToOklch(hex) }
+    }
+  }
+
+  // Muted: L 0.35-0.65, C < 0.05 — else derive from text
+  let mutedCandidate = null
+  {
+    const match = pool.find((c, i) => !used.has(i) && c.oklch.L >= 0.35 && c.oklch.L <= 0.65 && c.oklch.C < 0.05)
+    if (match) { used.add(pool.indexOf(match)); mutedCandidate = match }
+    else {
+      const hex = deriveOklch(0.55, 0.03, textCandidate.oklch.H)
+      mutedCandidate = { hex, oklch: hexToOklch(hex) }
+    }
+  }
+
+  // Border: L 0.20-0.45, C < 0.06 — else derive from bg
+  let borderCandidate = null
+  {
+    const match = pool.find((c, i) => !used.has(i) && c.oklch.L >= 0.20 && c.oklch.L <= 0.45 && c.oklch.C < 0.06)
+    if (match) { used.add(pool.indexOf(match)); borderCandidate = match }
+    else {
+      const hex = deriveOklch(bgCandidate.oklch.L - 0.15, Math.min(bgCandidate.oklch.C, 0.04), bgCandidate.oklch.H)
+      borderCandidate = { hex, oklch: hexToOklch(hex) }
+    }
+  }
+
+  // ── Step 4: Count-aware output ───────────────────────────────────────────
+  const roleMap = {
+    text: textCandidate, background: bgCandidate, primary: primaryCandidate,
+    secondary: secondaryCandidate, accent: accentCandidate,
+    surface: surfaceCandidate, muted: mutedCandidate, border: borderCandidate,
+  }
+  const selectedRoles = ROLE_PRIORITY.slice(0, count)
+  let selected = selectedRoles.map(r => roleMap[r])
+
+  // ── Step 5: Post-processing quality checks ───────────────────────────────
+  // 1. Text vs Background ≥ 7:1 (AAA)
+  {
+    let textHex = selected[0].hex
+    let bgHex   = selected[1].hex
+    if (getContrastRatio(textHex, bgHex) < 7) {
+      const { L: tL, C: tC, H: tH } = hexToOklch(textHex)
+      const { L: bL, C: bC, H: bH } = hexToOklch(bgHex)
+      // Try darkening text and lightening bg together
+      let fixed = false
+      for (let step = 0.01; step <= 0.5 && !fixed; step += 0.01) {
+        const t2 = deriveOklch(tL - step, tC, tH)
+        const b2 = deriveOklch(bL + step * 0.5, Math.min(bC, 0.03), bH)
+        if (getContrastRatio(t2, b2) >= 7) {
+          selected[0] = { hex: t2, oklch: hexToOklch(t2) }
+          selected[1] = { hex: b2, oklch: hexToOklch(b2) }
+          fixed = true
+        }
+      }
+    }
+  }
+
+  // 2. Primary vs Background ≥ 3:1
+  if (selected.length >= 3) {
+    const bgHex  = selected[1].hex
+    const prHex  = selected[2].hex
+    if (getContrastRatio(prHex, bgHex) < 3) {
+      const { L, C, H } = hexToOklch(prHex)
+      for (let step = 0.01; step <= 0.6; step += 0.01) {
+        const darker  = deriveOklch(L - step, C, H)
+        if (getContrastRatio(darker, bgHex) >= 3) {
+          selected[2] = { hex: darker, oklch: hexToOklch(darker) }
+          break
+        }
+        const lighter = deriveOklch(L + step, C, H)
+        if (getContrastRatio(lighter, bgHex) >= 3) {
+          selected[2] = { hex: lighter, oklch: hexToOklch(lighter) }
+          break
+        }
+      }
+    }
+  }
+
+  // 3. No near-duplicates in final set (threshold 15)
+  for (let i = 0; i < selected.length; i++) {
+    for (let j = i + 1; j < selected.length; j++) {
+      if (oklchDistance(selected[i].oklch, selected[j].oklch) < 15) {
+        // Replace the less-useful one (j) with next best unused pool candidate
+        const nextBest = pool.find((c, pi) => !used.has(pi) && pool.findIndex(p => p === c) !== -1)
+        if (nextBest) {
+          selected[j] = nextBest
+          used.add(pool.indexOf(nextBest))
+        }
+      }
+    }
+  }
+
+  // 4. Hue diversity: if all hues within 60°, inject outlier if available
+  if (selected.length >= 3) {
+    const hues = selected.slice(2).map(c => c.oklch.H) // skip text/bg
+    const minH = Math.min(...hues), maxH = Math.max(...hues)
+    const spread = Math.min(maxH - minH, 360 - (maxH - minH))
+    if (spread < 60) {
+      const outlier = pool.find((c, pi) => !used.has(pi) && hues.every(h => hueDiff(c.oklch.H, h) > 90))
+      if (outlier) {
+        // Replace the last color (least important role)
+        selected[selected.length - 1] = outlier
+      }
+    }
+  }
+
+  // ── Apply locks ──────────────────────────────────────────────────────────
+  const finalPalette = selected.map((c, i) =>
+    locks.has(i) && currentPalette[i] ? currentPalette[i] : c.hex
+  )
+
+  return { palette: finalPalette, candidateCount: deduplicated.length }
+}
+
 // ── Shade scale generation ────────────────────────────────────────────────────
 const SHADE_STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]
 function lerpVal(a, b, t) { return a + (b - a) * t }
@@ -623,6 +868,9 @@ export default function App() {
   // ── Sprint 2.6 state ─────────────────────────────────────────────────────
   const [openRoleDropdown, setOpenRoleDropdown] = useState(null) // index of swatch with open dropdown
 
+  // ── Sprint 2.7 state ─────────────────────────────────────────────────────
+  const [extractionInfo, setExtractionInfo] = useState(null) // { candidates, selected }
+
   // ── Panel resize state ───────────────────────────────────────────────────
   const [panelWidths, setPanelWidthsState] = useState({ left: 340, right: 280 })
   const panelWidthsRef = useRef({ left: 340, right: 280 })
@@ -729,19 +977,17 @@ export default function App() {
     }
   }
 
-  // ── Global extraction ────────────────────────────────────────────────────
+  // ── Global extraction (design-system engine) ────────────────────────────
   const runExtraction = useCallback(async (count, currentPalette, currentLocks) => {
     if (!imgRef.current) return null
-    const colors = await getPalette(imgRef.current, { colorCount: count })
-    const extracted = colors.map(c => c.hex())
-    return Array.from({ length: count }, (_, i) =>
-      currentLocks.has(i) && currentPalette[i]
-        ? currentPalette[i]
-        : (extracted[i] ?? extracted[extracted.length - 1])
+    const { palette: extracted, candidateCount } = await designSystemExtract(
+      imgRef.current, count, currentLocks, currentPalette
     )
+    setExtractionInfo({ candidates: candidateCount, selected: count })
+    return extracted
   }, [])
 
-  // ── Region extraction ────────────────────────────────────────────────────
+  // ── Region extraction (design-system engine) ─────────────────────────────
   const runRegionExtraction = useCallback(async (pos) => {
     if (!imgRef.current || !cropCanvasRef.current) return
     const img = imgRef.current
@@ -757,20 +1003,19 @@ export default function App() {
     const count = colorCountRef.current
     const cl = locksRef.current
     const cp = paletteRef.current
-    const colors = await getPalette(canvas, { colorCount: count })
-    const extracted = colors.map(c => c.hex())
-    const newPalette = Array.from({ length: count }, (_, i) =>
-      cl.has(i) && cp[i] ? cp[i] : (extracted[i] ?? extracted[extracted.length - 1])
-    )
+    const { palette: newPalette, candidateCount } = await designSystemExtract(canvas, count, cl, cp)
+    setExtractionInfo({ candidates: candidateCount, selected: count })
     setPalette(newPalette)
   }, [])
 
   const onImageLoad = async () => {
     const count = colorCountRef.current
-    const colors = await getPalette(imgRef.current, { colorCount: count })
-    const pal = colors.map(c => c.hex())
+    const { palette: pal, candidateCount } = await designSystemExtract(
+      imgRef.current, count, new Set(), []
+    )
     setPalette(pal)
     setRoles(autoAssignRoles(pal))
+    setExtractionInfo({ candidates: candidateCount, selected: count })
     setLocks(new Set())
     setOpenSlider(null)
     setHistory([])
@@ -1214,6 +1459,11 @@ export default function App() {
               <span className="stepper-hint">5–6 recommended</span>
             </div>
           </div>
+          {extractionInfo && (
+            <div className="extraction-info">
+              {extractionInfo.candidates} candidates → {extractionInfo.selected} selected
+            </div>
+          )}
 
           {/* ── Left panel tab switcher ── */}
           <div className="left-tabs">
