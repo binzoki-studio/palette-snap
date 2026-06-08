@@ -1464,6 +1464,61 @@ function UIPreview({ palette, roles = {}, uiBg = 'light' }) {
   )
 }
 
+// ── URL image helpers ────────────────────────────────────────────────────────
+
+/**
+ * Transforms known "gallery page" URLs into direct image CDN URLs.
+ * Returns the same URL unchanged if no transformation is known.
+ */
+function resolveImageUrl(input) {
+  try {
+    const u = new URL(input)
+    const host = u.hostname.replace(/^www\./, '')
+
+    // unsplash.com/photos/[description]-[id]  →  images.unsplash.com/photo-[id]
+    if (host === 'unsplash.com' && /\/photos\//.test(u.pathname)) {
+      const slug = (u.pathname.split('/photos/')[1] || '').split('?')[0]
+      // The photo ID is the last hyphen-separated segment
+      const id = slug.replace(/^.*-([a-zA-Z0-9]+)$/, '$1')
+      if (id && id !== slug) {   // only if we actually extracted an ID
+        return `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=1200&q=80`
+      }
+    }
+
+    return input
+  } catch {
+    return input
+  }
+}
+
+/**
+ * Returns a user-friendly error string for a failed URL image load.
+ * `reason`: 'not-image' | 'cors' | 'http-NNN' | 'unknown'
+ */
+function urlLoadError(originalUrl, reason) {
+  try {
+    const host = new URL(originalUrl).hostname.replace(/^www\./, '')
+
+    if (host === 'unsplash.com') {
+      return "Unsplash page URLs are not direct images. On the photo page, right-click the photo → \"Open image in new tab\", then paste that URL here."
+    }
+    if (['pexels.com','pixabay.com','flickr.com','500px.com'].includes(host)) {
+      return `${host} page URLs are not direct images. Right-click the photo on the page then choose "Open image in new tab" and paste that URL here.`
+    }
+    if (host.endsWith('pinterest.com') || host.endsWith('instagram.com') || host.endsWith('twitter.com') || host.endsWith('x.com')) {
+      return `${host} blocks direct image loading. Save the image locally and use the Upload option instead.`
+    }
+  } catch { /* non-URL input */ }
+
+  if (reason === 'not-image') {
+    return 'That URL points to a webpage, not an image. Use a direct image URL (one that ends in .jpg, .png, .webp, etc.).'
+  }
+  if (reason === 'cors') {
+    return "The server blocked cross-origin access. Try downloading the image and uploading it directly."
+  }
+  return "Couldn't load that image. The URL may be invalid, expired, or the server may not allow cross-origin requests."
+}
+
 // ── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   // ── Core palette state ───────────────────────────────────────────────────
@@ -1479,6 +1534,7 @@ export default function App() {
   const [inputMode, setInputMode]   = useState('upload')
   const [urlInput, setUrlInput]     = useState('')
   const [urlError, setUrlError]     = useState(null)
+  const [urlLoading, setUrlLoading] = useState(false)
   const [dragging, setDragging]     = useState(false)
   const [samplingMode, setSamplingMode] = useState('global')
   const [regionPos, setRegionPos]   = useState({ x: 0.5, y: 0.5 })
@@ -1704,14 +1760,43 @@ export default function App() {
   }
 
   // ── URL ──────────────────────────────────────────────────────────────────
-  const handleUrlLoad = () => {
-    const url = urlInput.trim()
-    if (!url) return
+  const handleUrlLoad = async () => {
+    const raw = urlInput.trim()
+    if (!raw) return
     setUrlError(null)
-    setPreview(url)
-    setPalette([])
-    setLocks(new Set())
-    setOpenSlider(null)
+    setUrlLoading(true)
+
+    // Transform known gallery-page URLs to direct image CDN URLs
+    const resolved = resolveImageUrl(raw)
+
+    try {
+      // Fetch to blob: sidesteps crossOrigin="anonymous" CORS restrictions
+      // on canvas completely — blob: URLs are always same-origin.
+      const res = await fetch(resolved, { mode: 'cors' })
+
+      if (!res.ok) throw new Error(`http-${res.status}`)
+
+      const ct = (res.headers.get('content-type') || '').split(';')[0].trim()
+      if (!ct.startsWith('image/')) throw new Error('not-image')
+
+      const blob    = await res.blob()
+      const blobUrl = URL.createObjectURL(blob)
+
+      setPreview(blobUrl)
+      setPalette([])
+      setLocks(new Set())
+      setOpenSlider(null)
+      setUrlError(null)
+
+    } catch (err) {
+      let reason = 'unknown'
+      if (err.message === 'not-image')            reason = 'not-image'
+      else if (err.name === 'TypeError')           reason = 'cors'       // fetch CORS block
+      else if (err.message.startsWith('http-'))   reason = err.message
+      setUrlError(urlLoadError(raw, reason))
+    } finally {
+      setUrlLoading(false)
+    }
   }
 
   const resetToInput = () => {
@@ -2069,7 +2154,6 @@ export default function App() {
                   src={preview}
                   alt="uploaded"
                   className="preview-img"
-                  crossOrigin="anonymous"
                   onLoad={onImageLoad}
                   onError={onImageError}
                   draggable={false}
@@ -2129,7 +2213,11 @@ export default function App() {
                   onKeyDown={e => e.key === 'Enter' && handleUrlLoad()}
                   autoFocus
                 />
-                <button className="url-go" onClick={handleUrlLoad} disabled={!urlInput.trim()}>→</button>
+                <button
+                  className="url-go"
+                  onClick={handleUrlLoad}
+                  disabled={!urlInput.trim() || urlLoading}
+                >{urlLoading ? '…' : '→'}</button>
               </div>
               {urlError && <p className="url-err">{urlError}</p>}
             </div>
