@@ -2142,18 +2142,18 @@ export default function App() {
         {/* ═══════════ PANEL 1: IMAGE + WORKSPACE ═══════════ */}
         <aside className="panel panel--image" style={{ width: panelWidths.left }}>
 
-          {/* ── IMAGE accordion ── */}
-          <div className="accord-section">
-            <button className="accord-header" onClick={() => setImageOpen(o => !o)}>
-              <span className="panel-label">IMAGE</span>
-              {/* Dice: load random Unsplash photo */}
+          {/* ── IMAGE section ── */}
+          <div className="lp-section">
+            <div className="lp-section-head">
+              <span className="lp-label">Image</span>
+              {/* Dice: load random image */}
               <button
                 className="dice-btn"
-                onClick={e => { e.stopPropagation(); handleRandomImage() }}
+                onClick={handleRandomImage}
                 title="Load random image"
                 disabled={urlLoading}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <rect x="2" y="2" width="20" height="20" rx="4" ry="4" stroke="currentColor" strokeWidth="1.8"/>
                   <circle cx="8"  cy="8"  r="1.5" fill="currentColor"/>
                   <circle cx="16" cy="8"  r="1.5" fill="currentColor"/>
@@ -2162,343 +2162,323 @@ export default function App() {
                   <circle cx="16" cy="16" r="1.5" fill="currentColor"/>
                 </svg>
               </button>
-              <svg
-                className={`accord-chevron ${imageOpen ? 'accord-chevron--open' : ''}`}
-                width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"
-              >
-                <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
+            </div>
 
-            {imageOpen && (
-              <div className="accord-body accord-body--image">
-                {/* Sampling toggle */}
-                {preview && (
-                  <div className="sampling-toggle">
-                    {['global', 'region'].map(m => (
-                      <button
-                        key={m}
-                        className={`sampling-btn ${samplingMode === m ? 'sampling-btn--active' : ''}`}
-                        onClick={toggleSampling}
-                      >{m}</button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Image preview / drop zone */}
-                <div className="image-container-wrap">
-                  {preview ? (
-                    <div
-                      className={`image-container ${samplingMode === 'region' ? 'image-container--region' : ''}`}
-                      ref={imageWrapRef}
-                      onMouseDown={handleImageMouseDown}
-                      onMouseMove={handleImageMouseMove}
-                      onMouseUp={handleImageMouseUp}
-                      onMouseLeave={handleImageMouseUp}
-                    >
-                      <img
-                        ref={imgRef}
-                        src={preview}
-                        alt="uploaded"
-                        className="preview-img"
-                        onLoad={onImageLoad}
-                        onError={onImageError}
-                        draggable={false}
-                      />
-                      {samplingMode === 'region' && (
-                        <div
-                          className="region-cursor"
-                          style={{ left: `${regionPos.x * 100}%`, top: `${regionPos.y * 100}%` }}
-                        />
-                      )}
-                    </div>
-                  ) : (
-                    <div className="image-placeholder">
-                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={C.inactive} strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
-                        <rect x="3" y="3" width="18" height="18" rx="3"/>
-                        <circle cx="8.5" cy="8.5" r="1.5"/>
-                        <path d="M21 15l-5-5L5 21"/>
-                      </svg>
-                      <span>No image loaded</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Input mode switcher */}
-                <div className="input-modes">
-                  {['upload', 'url', 'camera'].map(m => (
+            <div className="lp-section-body">
+              {/* Sampling toggle */}
+              {preview && (
+                <div className="sampling-toggle">
+                  {['global', 'region'].map(m => (
                     <button
                       key={m}
-                      className={`input-mode-btn ${inputMode === m ? 'input-mode-btn--active' : ''}`}
-                      onClick={() => { setInputMode(m); setUrlError(null) }}
+                      className={`sampling-btn ${samplingMode === m ? 'sampling-btn--active' : ''}`}
+                      onClick={toggleSampling}
                     >{m}</button>
                   ))}
                 </div>
+              )}
 
-                {/* Mode panels */}
-                {inputMode === 'upload' && (
-                  <label
-                    className={`dropzone-sm ${dragging ? 'dropzone-sm--active' : ''}`}
-                    onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
-                    onDragLeave={() => setDragging(false)}
-                    onDrop={onDrop}
+              {/* Image preview (only when loaded) */}
+              {preview && (
+                <div className="image-container-wrap">
+                  <div
+                    className={`image-container ${samplingMode === 'region' ? 'image-container--region' : ''}`}
+                    ref={imageWrapRef}
+                    onMouseDown={handleImageMouseDown}
+                    onMouseMove={handleImageMouseMove}
+                    onMouseUp={handleImageMouseUp}
+                    onMouseLeave={handleImageMouseUp}
                   >
-                    <span className="dz-hint">drop image or click</span>
-                    <input ref={uploadInputRef} type="file" accept="image/*" hidden onChange={onFileChange} />
-                  </label>
-                )}
-
-                {inputMode === 'url' && (
-                  <div className="url-mode">
-                    <div className="url-row-sm">
-                      <input
-                        type="url"
-                        className="url-input-sm"
-                        placeholder="https://…"
-                        value={urlInput}
-                        onChange={e => { setUrlInput(e.target.value); setUrlError(null) }}
-                        onKeyDown={e => e.key === 'Enter' && handleUrlLoad()}
-                        autoFocus
+                    <img
+                      ref={imgRef}
+                      src={preview}
+                      alt="uploaded"
+                      className="preview-img"
+                      onLoad={onImageLoad}
+                      onError={onImageError}
+                      draggable={false}
+                    />
+                    {samplingMode === 'region' && (
+                      <div
+                        className="region-cursor"
+                        style={{ left: `${regionPos.x * 100}%`, top: `${regionPos.y * 100}%` }}
                       />
-                      <button
-                        className="url-go"
-                        onClick={handleUrlLoad}
-                        disabled={!urlInput.trim() || urlLoading}
-                      >{urlLoading ? '…' : '→'}</button>
-                    </div>
-                    {urlError && <p className="url-err">{urlError}</p>}
-                  </div>
-                )}
-
-                {inputMode === 'camera' && (
-                  <button className="camera-mode-btn" onClick={() => cameraInputRef.current?.click()}>
-                    open camera
-                    <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={onFileChange} />
-                  </button>
-                )}
-
-                {/* Controls: undo + redo + stepper */}
-                <div className="image-controls">
-                  <div className="ctrl-undo-redo">
-                    <button className="ctrl-btn" onClick={undo} disabled={history.length === 0}>←</button>
-                    <button className="ctrl-btn" onClick={redo} disabled={redoHistory.length === 0}>→</button>
-                  </div>
-                  <div className="stepper">
-                    <button className="stepper-btn" onClick={() => handleCountChange(-1)} disabled={!canDecrement}>−</button>
-                    <span className="stepper-count">{colorCount}</span>
-                    <button className="stepper-btn" onClick={() => handleCountChange(1)} disabled={!canIncrement}>+</button>
-                    <span className="stepper-hint">5–6 recommended</span>
+                    )}
                   </div>
                 </div>
-                {extractionInfo && (
-                  <div className="extraction-info">
-                    {extractionInfo.candidates} candidates → {extractionInfo.selected} selected
-                  </div>
-                )}
+              )}
 
+              {/* Input mode switcher */}
+              <div className="input-modes">
+                {['upload', 'url', 'camera'].map(m => (
+                  <button
+                    key={m}
+                    className={`input-mode-btn ${inputMode === m ? 'input-mode-btn--active' : ''}`}
+                    onClick={() => { setInputMode(m); setUrlError(null) }}
+                  >{m}</button>
+                ))}
               </div>
-            )}
+
+              {/* Mode panels */}
+              {inputMode === 'upload' && (
+                <label
+                  className={`dropzone-sm ${dragging ? 'dropzone-sm--active' : ''}`}
+                  onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={onDrop}
+                >
+                  <svg className="dz-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="3"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <path d="M21 15l-5-5L5 21"/>
+                  </svg>
+                  <span className="dz-hint">Drop an image or click to browse</span>
+                  <span className="dz-sub">PNG · JPG · WEBP · SVG</span>
+                  <input ref={uploadInputRef} type="file" accept="image/*" hidden onChange={onFileChange} />
+                </label>
+              )}
+
+              {inputMode === 'url' && (
+                <div className="url-mode">
+                  <div className="url-row-sm">
+                    <input
+                      type="url"
+                      className="url-input-sm"
+                      placeholder="https://…"
+                      value={urlInput}
+                      onChange={e => { setUrlInput(e.target.value); setUrlError(null) }}
+                      onKeyDown={e => e.key === 'Enter' && handleUrlLoad()}
+                      autoFocus
+                    />
+                    <button
+                      className="url-go"
+                      onClick={handleUrlLoad}
+                      disabled={!urlInput.trim() || urlLoading}
+                    >{urlLoading ? '…' : '→'}</button>
+                  </div>
+                  {urlError && <p className="url-err">{urlError}</p>}
+                </div>
+              )}
+
+              {inputMode === 'camera' && (
+                <button className="camera-mode-btn" onClick={() => cameraInputRef.current?.click()}>
+                  open camera
+                  <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={onFileChange} />
+                </button>
+              )}
+
+              {/* Undo / redo */}
+              <div className="image-controls">
+                <div className="ctrl-undo-redo">
+                  <button className="ctrl-btn" onClick={undo} disabled={history.length === 0}>←</button>
+                  <button className="ctrl-btn" onClick={redo} disabled={redoHistory.length === 0}>→</button>
+                </div>
+              </div>
+              {extractionInfo && (
+                <div className="extraction-info">
+                  {extractionInfo.candidates} candidates → {extractionInfo.selected} selected
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* ── COLORS accordion ── */}
-          <div className="accord-section accord-section--grow">
-            <button className="accord-header" onClick={() => setColorsOpen(o => !o)}>
-              <span className="panel-label">COLORS</span>
-              <svg
-                className={`accord-chevron ${colorsOpen ? 'accord-chevron--open' : ''}`}
-                width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"
-              >
-                <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-
-            {colorsOpen && (<>
-              {/* Show contrast toggle */}
-              <div className="contrast-toggle-row">
-                <label className="contrast-toggle-label">
-                  <input
-                    type="checkbox"
-                    checked={showContrast}
-                    onChange={e => setShowContrast(e.target.checked)}
-                  />
-                  Show contrast
-                </label>
+          {/* ── COLORS section ── */}
+          <div className="lp-section lp-section--grow">
+            <div className="lp-section-head">
+              <span className="lp-label">Colors</span>
+              <div className="stepper">
+                <button className="stepper-btn" onClick={() => handleCountChange(-1)} disabled={!canDecrement}>−</button>
+                <span className="stepper-count">{colorCount}</span>
+                <button className="stepper-btn" onClick={() => handleCountChange(1)} disabled={!canIncrement}>+</button>
               </div>
+              <span className="stepper-hint">5–6 rec.</span>
+            </div>
 
-              {/* Tab switcher */}
-              <div className="left-tabs">
-                <button
-                  className={`left-tab ${leftTab === 'swatches' ? 'left-tab--active' : ''}`}
-                  onClick={() => setLeftTab('swatches')}
-                >Swatches</button>
-                <button
-                  className={`left-tab ${leftTab === 'scales' ? 'left-tab--active' : ''}`}
-                  onClick={() => setLeftTab('scales')}
-                >Scales</button>
-              </div>
-            </>)}
+            {/* Tab switcher */}
+            <div className="left-tabs">
+              <button
+                className={`left-tab ${leftTab === 'swatches' ? 'left-tab--active' : ''}`}
+                onClick={() => setLeftTab('swatches')}
+              >Swatches</button>
+              <button
+                className={`left-tab ${leftTab === 'scales' ? 'left-tab--active' : ''}`}
+                onClick={() => setLeftTab('scales')}
+              >Scales</button>
+            </div>
 
-          {/* ── Swatches tab ── */}
-          {colorsOpen && leftTab === 'swatches' && (
-            <div className="left-tab-content">
-              {palette.length > 0 ? (
-                <div className="swatch-list">
-                  {palette.map((hex, i) => {
-                    const name = paletteNames[i] ?? getColorName(hex)
-                    const contrast = getContrastRatio(hex, '#ffffff')
-                    const level = contrast >= 7 ? 'AAA' : contrast >= 4.5 ? 'AA' : null
-                    const isOpen = openSlider === i
-                    const isLocked = locks.has(i)
-                    return (
-                      <div key={i} className={`swatch-row ${isOpen ? 'swatch-row--open' : ''}`} style={isOpen ? { flex: 'none' } : undefined}>
-                        <div className="swatch-row-main" onClick={() => handleSwatchClick(i)}>
-                          <span className="swatch-block" style={{ background: hex }} />
-                          <div className="swatch-labels">
-                            <span className="swatch-hex">{hex}</span>
-                            <span className="swatch-name">{name}</span>
-                          </div>
-                          <div className="role-wrapper">
-                            <button
-                              className={`role-pill ${roles[i] ? 'role-pill--active' : ''}`}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setOpenRoleDropdown(prev => prev === i ? null : i)
-                              }}
-                              title="Set semantic role"
-                            >
-                              {roles[i] ? ROLE_LABELS[roles[i]] : '·'}
-                            </button>
-                            {openRoleDropdown === i && (
-                              <>
-                                <div className="role-dropdown-backdrop" onClick={() => setOpenRoleDropdown(null)} />
-                                <div className="role-dropdown">
-                                  <button className="role-dropdown-item role-dropdown-item--none"
-                                    onClick={(e) => { e.stopPropagation(); assignRole(i, null) }}>
-                                    — none
-                                  </button>
-                                  {ROLE_ALL.map(role => {
-                                    const takenBy = Object.keys(roles).find(k => +k !== i && roles[+k] === role)
-                                    return (
-                                      <button key={role}
-                                        className={`role-dropdown-item ${roles[i] === role ? 'role-dropdown-item--active' : ''} ${takenBy !== undefined ? 'role-dropdown-item--taken' : ''}`}
-                                        onClick={(e) => { e.stopPropagation(); assignRole(i, role) }}>
-                                        <span className="role-dropdown-label">{ROLE_LABELS[role]}</span>
-                                        <span className="role-dropdown-name">{role}</span>
-                                        {takenBy !== undefined && <span className="role-dropdown-swap">↔</span>}
-                                      </button>
-                                    )
-                                  })}
-                                </div>
-                              </>
-                            )}
-                          </div>
-                          {showContrast && (
-                            <span className={`a11y-badge ${level ? 'a11y-badge--pass' : 'a11y-badge--fail'}`}>
-                              {level || '✗'} {contrast.toFixed(1)}
+            {/* ── Swatches tab ── */}
+            {leftTab === 'swatches' && (
+              <div className="left-tab-content">
+                {palette.length > 0 ? (
+                  <div className="swatch-list">
+                    {palette.map((hex, i) => {
+                      const name = paletteNames[i] ?? getColorName(hex)
+                      const contrast = getContrastRatio(hex, '#ffffff')
+                      const level = contrast >= 7 ? 'AAA' : contrast >= 4.5 ? 'AA' : null
+                      const isOpen = openSlider === i
+                      const isLocked = locks.has(i)
+                      return (
+                        <div key={i} className={`swatch-row ${isOpen ? 'swatch-row--open' : ''}`} style={isOpen ? { flex: 'none' } : undefined}>
+                          <div className="swatch-row-main" onClick={() => handleSwatchClick(i)}>
+                            <span className="swatch-block" style={{ background: hex }}>
+                              {isLocked && <span className="swatch-lock-overlay"><LockIcon locked={true} /></span>}
                             </span>
-                          )}
-                          <div className="swatch-actions">
-                            <button
-                              className={`swatch-action ${isLocked ? 'swatch-action--locked' : ''}`}
-                              onClick={(e) => toggleLock(i, e)}
-                              title={isLocked ? 'Unlock' : 'Lock'}
-                            ><LockIcon locked={isLocked} /></button>
-                            <button
-                              className={`swatch-action ${copied === i ? 'swatch-action--copied' : ''}`}
-                              onClick={(e) => { e.stopPropagation(); handleCopy(hex, i) }}
-                              title="Copy hex"
-                            >{copied === i ? '✓' : <CopyIcon />}</button>
-                          </div>
-                        </div>
-                        {isOpen && sliderHsl && (
-                          <div className="hsl-panel">
-                            <div className="hsl-panel-header">
-                              <span className="hsl-dot" style={{ background: hex }} />
-                              <span className="hsl-title">Adjusting {name}</span>
-                              <button className="hsl-close" onClick={() => setOpenSlider(null)}>✕</button>
+                            <div className="swatch-labels">
+                              <span className="swatch-hex">{hex}</span>
+                              <span className="swatch-name">{name}</span>
                             </div>
-                            {[
-                              { key: 'h', label: 'H', max: 360, unit: '°', grad: hueGrad   },
-                              { key: 's', label: 'S', max: 100, unit: '%', grad: satGrad   },
-                              { key: 'l', label: 'L', max: 100, unit: '%', grad: lightGrad },
-                            ].map(({ key, label, max, unit, grad }) => (
-                              <div key={key} className="hsl-row">
-                                <span className="hsl-lbl">{label}</span>
-                                <div className="hsl-track" style={{ background: grad }}>
-                                  <input
-                                    type="range" className="hsl-slider"
-                                    min={0} max={max} value={sliderHsl[key]}
-                                    onChange={e => onHslChange(key, e.target.value)}
-                                  />
-                                </div>
-                                <span className="hsl-val">{sliderHsl[key]}{unit}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="left-empty">Load an image to extract colors</div>
-              )}
-              {palette.length > 0 && (
-                <div className="color-strip">
-                  {palette.map((hex, i) => (
-                    <span key={i} style={{ flex: 1, background: hex, display: 'block' }} />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Scales tab ── */}
-          {colorsOpen && leftTab === 'scales' && (
-            <div className="left-tab-content">
-              {palette.length > 0 ? (
-                <div className="scales-view">
-                  {palette.map((hex, i) => {
-                    const scale = generateScale(hex)
-                    const name  = paletteNames[i] ?? getColorName(hex)
-                    return (
-                      <div key={i} className="scale-row-wrap">
-                        <div className="scale-row-label">{name}</div>
-                        <div className="scale-steps">
-                          {SHADE_STEPS.map(step => {
-                            const { hex: sHex } = scale[step]
-                            const isAnchor  = step === 500
-                            const wContrast = getContrastRatio(sHex, '#ffffff')
-                            const bContrast = getContrastRatio(sHex, '#000000')
-                            const useWhite  = wContrast >= 4.5
-                            const useBlack  = !useWhite && bContrast >= 4.5
-                            const labelCol  = readableText(sHex)
-                            return (
-                              <div
-                                key={step}
-                                className={`scale-step${isAnchor ? ' scale-step--anchor' : ''}`}
-                                style={{ background: sHex }}
+                            <span className={`a11y-badge ${level ? 'a11y-badge--pass' : 'a11y-badge--fail'}`}>
+                              {level || '✗'}{showContrast ? ` ${contrast.toFixed(1)}` : ''}
+                            </span>
+                            <div className="role-wrapper">
+                              <button
+                                className={`role-pill ${roles[i] ? 'role-pill--active' : ''}`}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setOpenRoleDropdown(prev => prev === i ? null : i)
+                                }}
+                                title="Set semantic role"
                               >
-                                <span className="scale-step-num" style={{ color: labelCol }}>{step}</span>
-                                <span className="scale-step-hex" style={{ color: labelCol }}>{sHex}</span>
-                                {isAnchor && <span className="scale-anchor-dot" style={{ background: labelCol }} />}
-                                {useWhite  && <span className="scale-text-dot scale-text-dot--white" />}
-                                {useBlack  && <span className="scale-text-dot scale-text-dot--black" />}
+                                {roles[i] ? ROLE_LABELS[roles[i]] : '·'}
+                              </button>
+                              {openRoleDropdown === i && (
+                                <>
+                                  <div className="role-dropdown-backdrop" onClick={() => setOpenRoleDropdown(null)} />
+                                  <div className="role-dropdown">
+                                    <button className="role-dropdown-item role-dropdown-item--none"
+                                      onClick={(e) => { e.stopPropagation(); assignRole(i, null) }}>
+                                      — none
+                                    </button>
+                                    {ROLE_ALL.map(role => {
+                                      const takenBy = Object.keys(roles).find(k => +k !== i && roles[+k] === role)
+                                      return (
+                                        <button key={role}
+                                          className={`role-dropdown-item ${roles[i] === role ? 'role-dropdown-item--active' : ''} ${takenBy !== undefined ? 'role-dropdown-item--taken' : ''}`}
+                                          onClick={(e) => { e.stopPropagation(); assignRole(i, role) }}>
+                                          <span className="role-dropdown-label">{ROLE_LABELS[role]}</span>
+                                          <span className="role-dropdown-name">{role}</span>
+                                          {takenBy !== undefined && <span className="role-dropdown-swap">↔</span>}
+                                        </button>
+                                      )
+                                    })}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                            <div className="swatch-actions">
+                              <button
+                                className={`swatch-action ${isLocked ? 'swatch-action--locked' : ''}`}
+                                onClick={(e) => toggleLock(i, e)}
+                                title={isLocked ? 'Unlock' : 'Lock'}
+                              ><LockIcon locked={isLocked} /></button>
+                              <button
+                                className={`swatch-action ${copied === i ? 'swatch-action--copied' : ''}`}
+                                onClick={(e) => { e.stopPropagation(); handleCopy(hex, i) }}
+                                title="Copy hex"
+                              >{copied === i ? '✓' : <CopyIcon />}</button>
+                            </div>
+                          </div>
+                          {isOpen && sliderHsl && (
+                            <div className="hsl-panel">
+                              <div className="hsl-panel-header">
+                                <span className="hsl-dot" style={{ background: hex }} />
+                                <span className="hsl-title">Adjusting {name}</span>
+                                <button className="hsl-close" onClick={() => setOpenSlider(null)}>✕</button>
                               </div>
-                            )
-                          })}
+                              {[
+                                { key: 'h', label: 'H', max: 360, unit: '°', grad: hueGrad   },
+                                { key: 's', label: 'S', max: 100, unit: '%', grad: satGrad   },
+                                { key: 'l', label: 'L', max: 100, unit: '%', grad: lightGrad },
+                              ].map(({ key, label, max, unit, grad }) => (
+                                <div key={key} className="hsl-row">
+                                  <span className="hsl-lbl">{label}</span>
+                                  <div className="hsl-track" style={{ background: grad }}>
+                                    <input
+                                      type="range" className="hsl-slider"
+                                      min={0} max={max} value={sliderHsl[key]}
+                                      onChange={e => onHslChange(key, e.target.value)}
+                                    />
+                                  </div>
+                                  <span className="hsl-val">{sliderHsl[key]}{unit}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="left-empty">Load an image to generate scales</div>
-              )}
-            </div>
-          )}
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="left-empty">Load an image to extract colors</div>
+                )}
+              </div>
+            )}
 
-          </div>{/* end COLORS accord-section */}
+            {/* ── Scales tab ── */}
+            {leftTab === 'scales' && (
+              <div className="left-tab-content">
+                {palette.length > 0 ? (
+                  <div className="scales-view">
+                    {palette.map((hex, i) => {
+                      const scale = generateScale(hex)
+                      const name  = paletteNames[i] ?? getColorName(hex)
+                      return (
+                        <div key={i} className="scale-row-wrap">
+                          <div className="scale-row-label">{name}</div>
+                          <div className="scale-steps">
+                            {SHADE_STEPS.map(step => {
+                              const { hex: sHex } = scale[step]
+                              const isAnchor  = step === 500
+                              const wContrast = getContrastRatio(sHex, '#ffffff')
+                              const bContrast = getContrastRatio(sHex, '#000000')
+                              const useWhite  = wContrast >= 4.5
+                              const useBlack  = !useWhite && bContrast >= 4.5
+                              const labelCol  = readableText(sHex)
+                              return (
+                                <div
+                                  key={step}
+                                  className={`scale-step${isAnchor ? ' scale-step--anchor' : ''}`}
+                                  style={{ background: sHex }}
+                                >
+                                  <span className="scale-step-num" style={{ color: labelCol }}>{step}</span>
+                                  <span className="scale-step-hex" style={{ color: labelCol }}>{sHex}</span>
+                                  {isAnchor && <span className="scale-anchor-dot" style={{ background: labelCol }} />}
+                                  {useWhite  && <span className="scale-text-dot scale-text-dot--white" />}
+                                  {useBlack  && <span className="scale-text-dot scale-text-dot--black" />}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="left-empty">Load an image to generate scales</div>
+                )}
+              </div>
+            )}
+
+            {/* ── Color strip + contrast toggle (panel bottom) ── */}
+            {palette.length > 0 && leftTab === 'swatches' && (
+              <div className="color-strip">
+                {palette.map((hex, i) => (
+                  <span key={i} style={{ flex: 1, background: hex, display: 'block' }} />
+                ))}
+              </div>
+            )}
+            <div className="contrast-toggle-row">
+              <label className="contrast-toggle-label">
+                <input
+                  type="checkbox"
+                  checked={showContrast}
+                  onChange={e => setShowContrast(e.target.checked)}
+                />
+                Show contrast
+              </label>
+            </div>
+
+          </div>{/* end COLORS section */}
 
         </aside>
 
