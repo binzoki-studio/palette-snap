@@ -93,34 +93,36 @@
 
 /* ── Titlebar ────────────────────────────────────────────── */
 .titlebar {
-  height: 44px;
+  height: 38px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--app-border);
-  background: var(--app-bg);
+  padding: 0 12px;
+  border-bottom: 0.5px solid var(--app-border);
+  background: #111114;
 }
 
 .titlebar-left {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
 }
 
-.titlebar-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--app-text);
-  opacity: 0.8;
+.titlebar-logomark {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #7c6af7, #5dcaa5);
+  flex-shrink: 0;
 }
 
 .titlebar-name {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-weight: 500;
   font-size: 13px;
+  letter-spacing: -0.01em;
   color: var(--app-text);
 }
 
@@ -128,65 +130,77 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: 'DM Mono', monospace;
-  font-size: 10px;
-  color: var(--app-inactive);
-  letter-spacing: 0.03em;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.22);
+  letter-spacing: 0;
 }
 
-.titlebar-privacy { color: var(--app-inactive); }
+.titlebar-privacy { color: inherit; }
 
-/* ── Theme switcher ──────────────────────────────────────── */
-.theme-switcher {
-  display: flex;
-  gap: 1px;
-  background: var(--app-surface);
-  border: 1px solid var(--app-border);
-  border-radius: 7px;
-  padding: 2px;
-}
-
-.theme-btn {
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  border-radius: 5px;
-  color: var(--app-inactive);
-  cursor: pointer;
-  transition: color 0.12s ease, background 0.12s ease;
-}
-.theme-btn:hover { color: var(--app-muted); background: var(--app-subtle); }
-.theme-btn--active {
-  background: var(--app-border);
-  color: var(--app-text);
+.titlebar-privacy-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(93, 202, 165, 0.5);
+  flex-shrink: 0;
 }
 
 .titlebar-right {
   display: flex;
-  gap: 2px;
-  background: var(--app-surface);
-  border: 1px solid var(--app-border);
-  border-radius: 7px;
-  padding: 2px;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  justify-content: flex-end;
 }
 
 .titlebar-tab {
-  font-family: 'DM Mono', monospace;
+  font-family: 'Inter', sans-serif;
   font-size: 11px;
-  padding: 4px 12px;
-  border-radius: 5px;
-  border: none;
+  font-weight: 500;
+  padding: 4px 11px;
+  border-radius: 6px;
+  border: 0.5px solid transparent;
   background: none;
-  color: var(--app-inactive);
-  transition: color 0.12s ease, background 0.12s ease;
+  color: var(--app-muted);
+}
+
+/* History = ghost */
+.titlebar-tab--ghost:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--app-text);
+}
+
+/* Extract = slightly elevated */
+.titlebar-tab--primary {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--app-text);
+}
+.titlebar-tab--primary:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .titlebar-tab--active {
-  background: var(--app-border);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--app-text);
+}
+
+/* Single theme toggle */
+.theme-toggle {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 0.5px solid rgba(255, 255, 255, 0.09);
+  border-radius: 6px;
+  color: var(--app-muted);
+  flex-shrink: 0;
+}
+.theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.05);
   color: var(--app-text);
 }
 
