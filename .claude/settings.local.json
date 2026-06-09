@@ -25,7 +25,8 @@
       "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap log --oneline origin/main -5)",
       "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap add src/App.jsx src/App.css)",
       "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap add .claude/settings.local.json)",
-      "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap push)"
+      "Bash(git -C /Users/marcogudini/Desktop/Claude/palette_snap push)",
+      "Bash(git commit -q -m ' *)"
     ]
   }
 }

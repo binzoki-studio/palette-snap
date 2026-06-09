@@ -1286,22 +1286,37 @@ function BrandPreview({ palette, roles = {}, uiBg = 'light' }) {
           <span className="brand-card-email" style={{ color: ha(muted, 0.8) }}>hello@brand.co</span>
         </div>
 
-        {/* Right side: type specimen + usage pairs */}
+        {/* Right side: type scale + palette-role usage + reversed pairs */}
         <div className="brand-bottom-right">
-          {/* Type specimen */}
-          <div className="brand-type-row" style={{ borderBottom: `1px solid ${ha(bgColor, 0.18)}`, paddingBottom: 10, marginBottom: 10 }}>
-            <span style={{ color: ha(bgColor, 0.45), fontSize: '0.6rem', fontFamily: 'DM Mono, monospace', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Typography</span>
-            <div style={{ color: bgColor, fontSize: '1.6rem', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1 }}>Aa</div>
-            <div style={{ color: ha(bgColor, 0.70), fontSize: '0.75rem', fontWeight: 400, lineHeight: 1.4 }}>Bb Cc Dd Ee Ff</div>
+          {/* Type scale */}
+          <div className="brand-type-scale" style={{ borderBottom: `1px solid ${ha(bgColor, 0.18)}` }}>
+            <span className="brand-guide-tag" style={{ color: ha(bgColor, 0.5) }}>Type scale</span>
+            <div style={{ color: bgColor, fontSize: '1.55rem', fontWeight: 800, letterSpacing: '-0.045em', lineHeight: 1.0 }}>Display</div>
+            <div style={{ color: ha(bgColor, 0.9), fontSize: '1rem', fontWeight: 600, letterSpacing: '-0.02em', lineHeight: 1.1 }}>Heading</div>
+            <div style={{ color: ha(bgColor, 0.62), fontSize: '0.72rem', fontWeight: 400, lineHeight: 1.45 }}>Body copy stays comfortable to read at smaller sizes.</div>
           </div>
-          {/* Usage pairs */}
-          <div style={{ display: 'flex', gap: 6 }}>
+
+          {/* Palette roles */}
+          <div className="brand-usage">
+            <span className="brand-guide-tag" style={{ color: ha(bgColor, 0.5) }}>Palette roles</span>
+            <div className="brand-usage-row">
+              {[['Primary', primary], ['Secondary', secondary], ['Accent', accent], ['Muted', muted]].map(([label, c]) => (
+                <div key={label} className="brand-usage-chip" style={{ background: ha(bgColor, 0.1), border: `1px solid ${ha(bgColor, 0.18)}` }}>
+                  <span className="brand-usage-dot" style={{ background: c }} />
+                  <span style={{ color: ha(bgColor, 0.82), fontSize: '0.6rem', fontWeight: 600 }}>{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* On-light / on-dark pairs */}
+          <div className="brand-usage-pairs">
             <div style={{ flex: 1, background: bgColor, borderRadius: 7, padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span style={{ color: ha(primary, 0.50), fontSize: '0.55rem', fontFamily: 'DM Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.08em' }}>On Light</span>
+              <span style={{ color: ha(primary, 0.5), fontSize: '0.55rem', fontFamily: 'DM Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.08em' }}>On Light</span>
               <span style={{ color: primary, fontSize: '0.75rem', fontWeight: 700 }}>Primary</span>
             </div>
-            <div style={{ flex: 1, background: ha(bgColor, 0.15), border: `1px solid ${ha(bgColor, 0.30)}`, borderRadius: 7, padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span style={{ color: ha(bgColor, 0.50), fontSize: '0.55rem', fontFamily: 'DM Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.08em' }}>On Dark</span>
+            <div style={{ flex: 1, background: ha(bgColor, 0.15), border: `1px solid ${ha(bgColor, 0.3)}`, borderRadius: 7, padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ color: ha(bgColor, 0.5), fontSize: '0.55rem', fontFamily: 'DM Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.08em' }}>On Dark</span>
               <span style={{ color: bgColor, fontSize: '0.75rem', fontWeight: 700 }}>Reversed</span>
             </div>
           </div>
