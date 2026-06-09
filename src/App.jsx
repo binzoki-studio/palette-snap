@@ -2527,18 +2527,20 @@ export default function App() {
               <div className="preview-toolbar">
                 {/* Template switcher pills */}
                 <div className="preview-tpl-switcher">
-                  {[
-                    { id: 'social',    label: 'social'    },
-                    { id: 'dashboard', label: 'dashboard' },
-                    { id: 'poster',    label: 'poster'    },
-                    { id: 'brand',     label: 'brand'     },
-                    { id: 'cards',     label: 'cards'     },
-                  ].map(({ id, label }) => (
+                  {['social', 'dashboard'].map(id => (
                     <button
                       key={id}
                       className={`preview-tpl-pill ${previewTemplate === id ? 'preview-tpl-pill--active' : ''}`}
                       onClick={() => setPreviewTemplate(id)}
-                    >{label}</button>
+                    >{id}</button>
+                  ))}
+                  <span className="preview-tpl-sep" />
+                  {['poster', 'brand', 'cards'].map(id => (
+                    <button
+                      key={id}
+                      className={`preview-tpl-pill ${previewTemplate === id ? 'preview-tpl-pill--active' : ''}`}
+                      onClick={() => setPreviewTemplate(id)}
+                    >{id}</button>
                   ))}
                 </div>
                 {/* Light/dark toggle */}
@@ -2569,8 +2571,38 @@ export default function App() {
                     {previewTemplate === 'cards'     && <CardsPreview     palette={palette} roles={roles} uiBg={uiBg} />}
                   </>
                 ) : (
-                  <div className="preview-placeholder">
-                    <span>Drop an image to see your palette in context</span>
+                  <div className="preview-empty">
+                    <div className="pe-glow" aria-hidden="true" />
+                    <div className="pe-inner">
+                      <div className="pe-ghost">
+                        {[
+                          { role: 'TXT', w: '76%' },
+                          { role: 'BG',  w: '92%' },
+                          { role: '1°',  w: '60%' },
+                          { role: 'ACC', w: '84%' },
+                        ].map(({ role, w }) => (
+                          <div key={role} className="pe-ghost-row">
+                            <span className="pe-ghost-label">{role}</span>
+                            <span className="pe-ghost-bar" style={{ width: w }} />
+                          </div>
+                        ))}
+                      </div>
+                      <h2 className="pe-headline">Drop an image to build your color system</h2>
+                      <p className="pe-sub">Extracts a production-ready palette — OKLCH scales, WCAG validation, and Tailwind export. Entirely in your browser.</p>
+                      <div className="pe-features">
+                        {[
+                          { label: 'OKLCH scales',   color: 'var(--accent-purple)' },
+                          { label: 'WCAG AA/AAA',    color: 'var(--accent-teal)'   },
+                          { label: 'Tailwind v4',    color: 'var(--accent-amber)'  },
+                          { label: 'No upload ever', color: 'rgba(255,255,255,0.25)' },
+                        ].map(({ label, color }) => (
+                          <div key={label} className="pe-feature">
+                            <span className="pe-feature-dot" style={{ background: color }} />
+                            {label}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
