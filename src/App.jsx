@@ -2651,7 +2651,12 @@ export default function App() {
           {/* ── Export accordion (open by default) ── */}
           <div className="accord-section">
             <button className="accord-header" onClick={() => setExportOpen(o => !o)}>
-              <span className="panel-label">EXPORT</span>
+              <span className="panel-label">Export</span>
+              {palette.length > 0 && (
+                <span className="export-pass-meta">
+                  {palette.filter(h => getContrastRatio(h, '#ffffff') >= 4.5 || getContrastRatio(h, '#000000') >= 4.5).length}/{palette.length} pass ✓
+                </span>
+              )}
               <svg
                 className={`accord-chevron ${exportOpen ? 'accord-chevron--open' : ''}`}
                 width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"
@@ -2663,7 +2668,7 @@ export default function App() {
               <div className="accord-body accord-body--export">
                 {palette.length > 0 ? (
                   <>
-                    {/* Scales export tabs + download buttons inline */}
+                    {/* Scales export tabs */}
                     {leftTab === 'scales' && (<>
                       <div className="export-tabs">
                         {SCALE_EXPORT_TABS.map(tab => (
@@ -2673,28 +2678,28 @@ export default function App() {
                             onClick={() => setScaleExportTab(tab)}
                           >{tab}</button>
                         ))}
-                        <div className="export-tabs-actions">
-                          <button className="export-dl-btn" onClick={downloadPNG} title="Download PNG">PNG</button>
-                          <button className="export-dl-btn" onClick={downloadTXT} title="Download TXT">TXT</button>
-                        </div>
                       </div>
                       <pre className="code-block" dangerouslySetInnerHTML={{ __html: scaleExportCodeHTML }} />
                     </>)}
 
-                    {/* Swatches export tabs + download buttons inline */}
+                    {/* Swatches export tabs — primary | secondary groups */}
                     {leftTab === 'swatches' && (<>
                       <div className="export-tabs">
-                        {EXPORT_TABS.map(tab => (
+                        {EXPORT_TABS.slice(0, 3).map(tab => (
                           <button
                             key={tab}
                             className={`export-tab ${exportTab === tab ? 'export-tab--active' : ''}`}
                             onClick={() => setExportTab(tab)}
                           >{tab}</button>
                         ))}
-                        <div className="export-tabs-actions">
-                          <button className="export-dl-btn" onClick={downloadPNG} title="Download PNG">PNG</button>
-                          <button className="export-dl-btn" onClick={downloadTXT} title="Download TXT">TXT</button>
-                        </div>
+                        <span className="export-tab-sep" />
+                        {EXPORT_TABS.slice(3).map(tab => (
+                          <button
+                            key={tab}
+                            className={`export-tab ${exportTab === tab ? 'export-tab--active' : ''}`}
+                            onClick={() => setExportTab(tab)}
+                          >{tab}</button>
+                        ))}
                       </div>
                       {exportTab === 'custom' ? (
                         <div className="custom-template-section">
@@ -2747,17 +2752,18 @@ export default function App() {
                       )}
                     </>)}
 
-                    {/* Copy row only */}
+                    {/* Download (PNG/TXT ghost left) + copy (elevated right) */}
                     <div className="export-download-row">
+                      <button className="export-dl-btn" onClick={downloadPNG} title="Download PNG">PNG</button>
+                      <button className="export-dl-btn" onClick={downloadTXT} title="Download TXT">TXT</button>
                       <button
                         className={`export-copy-btn ${copied === 'export' ? 'export-copy-btn--copied' : ''}`}
                         onClick={handleExport}
-                        style={{ marginLeft: 0, width: '100%' }}
-                      >{copied === 'export' ? '✓ copied' : 'copy to clipboard'}</button>
+                      >{copied === 'export' ? '✓ copied' : 'Copy'}</button>
                     </div>
                   </>
                 ) : (
-                  <div className="intel-empty">Load an image to export</div>
+                  <div className="intel-empty">Load an image to begin</div>
                 )}
               </div>
             )}
