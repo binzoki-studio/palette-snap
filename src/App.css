@@ -351,7 +351,7 @@
 
 .panel-label {
   font-family: 'Inter', sans-serif;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.45);
   letter-spacing: 0.08em;
@@ -825,7 +825,7 @@
 .swatch-hex {
   display: block;
   font-family: 'DM Mono', monospace;
-  font-size: 11px;
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.75);
   line-height: 1.35;
 }
@@ -834,7 +834,7 @@
 .swatch-name {
   display: block;
   font-family: 'Inter', sans-serif;
-  font-size: 10px;
+  font-size: 11px;
   color: rgba(255, 255, 255, 0.55);
   line-height: 1.3;
 }
@@ -1342,7 +1342,7 @@
 
 .code-block {
   font-family: 'DM Mono', monospace;
-  font-size: 10.5px;
+  font-size: 11.5px;
   line-height: 1.75;
   color: var(--app-muted);
   background: rgba(255, 255, 255, 0.025);
@@ -2099,7 +2099,7 @@
 
 .lp-label {
   font-family: 'Inter', sans-serif;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.45);
   letter-spacing: 0.08em;
