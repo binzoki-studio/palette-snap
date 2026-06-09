@@ -28,6 +28,7 @@
   --accent-purple:    #7c6af7;
   --accent-teal:      #5dcaa5;
   --accent-amber:     #f2a33b;
+  --titlebar-bg:      #111114;
 
   color-scheme: dark;
 }
@@ -53,6 +54,7 @@
   --accent-purple:    #6b5cf0;
   --accent-teal:      #2f9c78;
   --accent-amber:     #d68a2b;
+  --titlebar-bg:      #e8e8e8;
 
   color-scheme: light;
 }
@@ -100,7 +102,7 @@
   justify-content: space-between;
   padding: 0 12px;
   border-bottom: 0.5px solid var(--app-border);
-  background: #111114;
+  background: var(--titlebar-bg);
 }
 
 .titlebar-left {
@@ -136,6 +138,8 @@
   letter-spacing: 0;
 }
 
+[data-theme="light"] .titlebar-center { color: rgba(0, 0, 0, 0.45); }
+
 .titlebar-privacy { color: inherit; }
 
 .titlebar-privacy-dot {
@@ -170,6 +174,9 @@
   background: rgba(255, 255, 255, 0.04);
   color: var(--app-text);
 }
+
+[data-theme="light"] .titlebar-tab--ghost { color: rgba(0, 0, 0, 0.55); }
+[data-theme="light"] .titlebar-tab--ghost:hover { background: rgba(0, 0, 0, 0.08); color: rgba(0, 0, 0, 0.85); }
 
 /* Extract = slightly elevated */
 .titlebar-tab--primary {
@@ -3510,4 +3517,105 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
+}
+
+/* ══════════════════════════════════════════════════════════
+   LIGHT MODE SURFACE & INTERACTION OVERRIDES
+   Converts hardcoded rgba(255,255,255,…) values to their
+   dark-alpha counterparts for [data-theme="light"].
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Titlebar buttons ── */
+[data-theme="light"] .titlebar-tab--primary {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.14);
+}
+[data-theme="light"] .titlebar-tab--primary:hover { background: rgba(0, 0, 0, 0.12); }
+[data-theme="light"] .titlebar-tab--active {
+  background: rgba(0, 0, 0, 0.07);
+  border-color: rgba(0, 0, 0, 0.16);
+}
+[data-theme="light"] .theme-toggle { border-color: rgba(0, 0, 0, 0.14); }
+[data-theme="light"] .theme-toggle:hover { background: rgba(0, 0, 0, 0.06); }
+
+/* ── Image panel controls ── */
+[data-theme="light"] .dice-btn:hover:not(:disabled) { background: rgba(0, 0, 0, 0.05); }
+[data-theme="light"] .ctrl-btn:hover:not(:disabled) { background: rgba(0, 0, 0, 0.05); }
+[data-theme="light"] .stepper-btn:hover:not(:disabled) { background: rgba(0, 0, 0, 0.05); }
+[data-theme="light"] .sampling-btn:hover:not(.sampling-btn--active) { background: rgba(0, 0, 0, 0.04); }
+[data-theme="light"] .sampling-btn--active {
+  background: rgba(0, 0, 0, 0.07);
+  border-color: rgba(0, 0, 0, 0.16);
+}
+[data-theme="light"] .dropzone-sm:hover,
+[data-theme="light"] .dropzone-sm--active {
+  border-color: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+/* ── Swatch rows ── */
+[data-theme="light"] .swatch-row-main:hover { background: rgba(0, 0, 0, 0.04); }
+[data-theme="light"] .swatch-row--open .swatch-row-main { background: rgba(0, 0, 0, 0.04); }
+[data-theme="light"] .swatch-action:hover { background: rgba(0, 0, 0, 0.06); }
+[data-theme="light"] .swatch-action--locked { background: rgba(0, 0, 0, 0.06); }
+
+/* ── Left panel tabs ── */
+[data-theme="light"] .left-tab--active {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.10);
+}
+[data-theme="light"] .left-tab:hover:not(.left-tab--active) { background: rgba(0, 0, 0, 0.03); }
+
+/* ── Accordion headers ── */
+[data-theme="light"] .accord-header:hover { background: rgba(0, 0, 0, 0.03); }
+
+/* ── Role pills ── */
+[data-theme="light"] .role-pill:hover { background: rgba(0, 0, 0, 0.05); }
+[data-theme="light"] .role-pill--active {
+  background: rgba(0, 0, 0, 0.07);
+  border-color: rgba(0, 0, 0, 0.16);
+}
+
+/* ── Vision pills ── */
+[data-theme="light"] .vision-pill--active {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.16);
+}
+[data-theme="light"] .vision-pill:hover:not(.vision-pill--active) { background: rgba(0, 0, 0, 0.04); }
+
+/* ── Preview toolbar button (dark/light preview toggle) ── */
+[data-theme="light"] .preview-toolbar-btn { border-color: rgba(0, 0, 0, 0.14); }
+[data-theme="light"] .preview-toolbar-btn:hover { background: rgba(0, 0, 0, 0.06); }
+[data-theme="light"] .preview-toolbar-btn--active { background: rgba(0, 0, 0, 0.08); }
+
+/* ── Template pill switcher ── */
+[data-theme="light"] .preview-tpl-pill:hover { background: rgba(0, 0, 0, 0.05); }
+[data-theme="light"] .preview-tpl-pill--active {
+  background: rgba(0, 0, 0, 0.07);
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+/* ── Export tabs ── */
+[data-theme="light"] .export-tab--active {
+  background: rgba(0, 0, 0, 0.07);
+  border-color: rgba(0, 0, 0, 0.14);
+}
+[data-theme="light"] .export-tab:hover:not(.export-tab--active) { background: rgba(0, 0, 0, 0.04); }
+
+/* ── Export download / copy buttons ── */
+[data-theme="light"] .export-dl-btn:hover { background: rgba(0, 0, 0, 0.05); }
+[data-theme="light"] .export-copy-btn {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.14);
+}
+[data-theme="light"] .export-copy-btn:hover { background: rgba(0, 0, 0, 0.09); }
+
+/* ── Empty-state ghost skeleton ── */
+[data-theme="light"] .pe-ghost-label { color: rgba(0, 0, 0, 0.12); }
+[data-theme="light"] .pe-ghost-bar {
+  border-color: rgba(0, 0, 0, 0.07);
+  background: linear-gradient(90deg,
+    rgba(0, 0, 0, 0.02) 0%,
+    rgba(0, 0, 0, 0.04) 50%,
+    rgba(0, 0, 0, 0.02) 100%);
 }
