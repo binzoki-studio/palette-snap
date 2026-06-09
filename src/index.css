@@ -10,12 +10,13 @@ html, body, #root {
 }
 
 body {
-  font-family: 'DM Sans', -apple-system, sans-serif;
-  background: #0A0A0B;
-  color: #E8E8E6;
+  font-family: 'Inter', 'DM Sans', -apple-system, system-ui, sans-serif;
+  background: #08090a;
+  color: rgba(255, 255, 255, 0.88);
   font-size: 13px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 button {
@@ -27,13 +28,22 @@ input {
   font-family: inherit;
 }
 
+/* ── Thin Linear-style scrollbars ── */
 ::-webkit-scrollbar {
   width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2A2A2E;
-  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
