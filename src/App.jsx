@@ -741,6 +741,14 @@ function makeByRole(palette, roles) {
   }
 }
 
+function PreviewAttribution({ color = 'rgba(255,255,255,0.35)' }) {
+  return (
+    <div className="preview-attribution" style={{ color }}>
+      Made with PaletteSnap · palette-snap-ten.vercel.app
+    </div>
+  )
+}
+
 // ── Social card preview (default template) ────────────────────────────────────
 function SocialPreview({ palette, roles = {}, uiBg = 'light' }) {
   if (!palette.length) return <div className="lp-empty">Load an image to see a preview</div>
@@ -909,6 +917,7 @@ function SocialPreview({ palette, roles = {}, uiBg = 'light' }) {
         <SwipeHint color={ha(c3Text, 0.45)} />
       </div>
 
+      <PreviewAttribution />
     </div>
   )
 }
@@ -1184,6 +1193,7 @@ function DashboardPreview({ palette, roles = {}, uiBg = 'light' }) {
         </div>
       </div>
 
+      <PreviewAttribution />
     </div>
   )
 }
@@ -1231,6 +1241,7 @@ function PosterPreview({ palette, roles = {}, uiBg = 'light' }) {
           </div>
         ))}
       </div>
+      <PreviewAttribution color={ha(headingCol, 0.45)} />
     </div>
   )
 }
@@ -1322,6 +1333,7 @@ function BrandPreview({ palette, roles = {}, uiBg = 'light' }) {
           </div>
         </div>
       </div>
+      <PreviewAttribution color={ha(bgColor, 0.45)} />
     </div>
   )
 }
@@ -1438,6 +1450,7 @@ function CardsPreview({ palette, roles = {}, uiBg = 'light' }) {
         </div>
 
       </div>
+      <PreviewAttribution />
     </div>
   )
 }
@@ -2134,10 +2147,10 @@ export default function App() {
 
   const downloadPNG = () => {
     if (!palette.length) return
-    const SW = 120, SH = 90, PAD = 8, LABEL_H = 26
+    const SW = 120, SH = 90, PAD = 8, LABEL_H = 26, FOOTER_H = 22
     const canvas = document.createElement('canvas')
     canvas.width  = palette.length * SW
-    canvas.height = SH + LABEL_H + PAD * 2
+    canvas.height = SH + LABEL_H + PAD * 2 + FOOTER_H
     const ctx = canvas.getContext('2d')
     ctx.fillStyle = '#0A0A0B'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
@@ -2156,6 +2169,13 @@ export default function App() {
       ctx.font = '9px sans-serif'
       ctx.fillText(name, x + (SW - PAD) / 2, PAD + SH + 14)
     })
+    const footerY = SH + LABEL_H + PAD * 2
+    ctx.fillStyle = '#111113'
+    ctx.fillRect(0, footerY, canvas.width, FOOTER_H)
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'
+    ctx.font = '9px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('Made with PaletteSnap · palette-snap-ten.vercel.app', canvas.width / 2, footerY + 14)
     const a = document.createElement('a')
     a.download = `palette-${Date.now()}.png`
     a.href = canvas.toDataURL()

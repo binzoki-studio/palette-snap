@@ -2434,6 +2434,7 @@
 
 /* ── Social card template ────────────────────────────────── */
 .sc-tray {
+  position: relative;
   display: flex;
   gap: 14px;
   padding: 20px 18px;
@@ -2694,6 +2695,7 @@
 
 /* ── Dashboard template (bento-grid) ────────────────────── */
 .db2 {
+  position: relative;
   display: flex;
   gap: 9px;
   padding: 12px;
@@ -2983,6 +2985,7 @@
 
 /* ── Poster template ─────────────────────────────────────── */
 .poster {
+  position: relative;
   min-height: 100%;
   display: flex;
   flex-direction: column;
@@ -3071,8 +3074,26 @@
   transform-origin: center;
 }
 
+/* ── Preview attribution footer ─────────────────────────── */
+.preview-attribution {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 7.5px;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  z-index: 10;
+}
+
 /* ── Brand template ──────────────────────────────────────── */
 .brand-sheet {
+  position: relative;
   min-height: 100%;
   display: flex;
   flex-direction: column;
@@ -3366,6 +3387,7 @@
 
 /* ── Flight Cards preview ──────────────────────────────────── */
 .fc-page {
+  position: relative;
   width: 100%;
   min-height: 100%;
   display: flex;
