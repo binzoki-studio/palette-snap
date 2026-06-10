@@ -828,6 +828,20 @@
 }
 .swatch-lock-overlay svg { width: 8px; height: 8px; }
 
+.swatch-pin-overlay {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 11px;
+  height: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.7));
+}
+.swatch-pin-overlay svg { width: 9px; height: 9px; }
+
 .swatch-labels {
   flex: 1;
   min-width: 0;
@@ -886,6 +900,7 @@
 }
 .swatch-action:hover { color: var(--app-text); background: rgba(255, 255, 255, 0.05); }
 .swatch-action--locked { color: var(--app-text); background: rgba(255, 255, 255, 0.05); }
+.swatch-action--pinned { color: #a78bfa; background: rgba(167, 139, 250, 0.15); }
 .swatch-action--copied { color: var(--app-pass); border-color: var(--app-pass); }
 
 /* ── HSL panel ───────────────────────────────────────────── */
@@ -3569,6 +3584,7 @@
 [data-theme="light"] .swatch-row--open .swatch-row-main { background: rgba(0, 0, 0, 0.04); }
 [data-theme="light"] .swatch-action:hover { background: rgba(0, 0, 0, 0.06); }
 [data-theme="light"] .swatch-action--locked { background: rgba(0, 0, 0, 0.06); }
+[data-theme="light"] .swatch-action--pinned { color: #7c3aed; background: rgba(124, 58, 237, 0.10); }
 
 /* ── Left panel tabs ── */
 [data-theme="light"] .left-tab--active {

@@ -1546,6 +1546,36 @@ function urlLoadError(originalUrl, resolvedUrl, reason) {
   return "Couldn't load that image. The URL may be invalid, expired, or the server may not allow cross-origin requests."
 }
 
+// ── Brand harmonization ───────────────────────────────────────────────────────
+// After extraction, gently shift chromatic colors' hues toward harmonic
+// relationships with the pinned brand color. Achromatic colors (C < 0.05) are
+// left untouched to preserve text/bg/surface readability.
+function harmonizeTowardBrand(pal, brandIdx) {
+  if (brandIdx === null || brandIdx >= pal.length) return pal
+  const { H: bH } = hexToOklch(pal[brandIdx])
+  const anchors = [0, 30, 60, 120, 150, 180, 210, 240, 300, 330].map(d => (bH + d + 360) % 360)
+  return pal.map((hex, i) => {
+    if (i === brandIdx) return hex
+    const { L, C, H } = hexToOklch(hex)
+    if (C < 0.05) return hex
+    let nearest = anchors[0], minD = hueDiff(H, anchors[0])
+    for (const a of anchors) { const d = hueDiff(H, a); if (d < minD) { minD = d; nearest = a } }
+    if (minD < 15) return hex // already close enough
+    let diff = nearest - H
+    if (diff > 180) diff -= 360
+    if (diff < -180) diff += 360
+    return deriveOklch(L, C, ((H + diff * 0.5 + 360) % 360))
+  })
+}
+
+function PinIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+      <path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146z"/>
+    </svg>
+  )
+}
+
 // ── Hex → design system (pure math, no image needed) ────────────────────────
 function generateDesignSystemFromHex(hex, count) {
   const { L, C, H } = hexToOklch(hex)
@@ -1636,6 +1666,7 @@ export default function App() {
 
   // ── Sprint 2.3 state ─────────────────────────────────────────────────────
   const [redoHistory, setRedoHistory]       = useState([])
+  const [brandColor, setBrandColor]         = useState(null) // index of pinned brand color
   const [uiBg, setUiBg]                     = useState(() => decodeHash(window.location.hash)?.uiBg ?? 'dark')
   const [roles, setRoles]                   = useState(() => decodeHash(window.location.hash)?.roles ?? {})
   const [customTemplate, setCustomTemplate] = useState('{name}: {hex};')
@@ -1687,15 +1718,18 @@ export default function App() {
   const customTemplateRef   = useRef(null)
   const customSelRef        = useRef({ start: 0, end: 0 })
 
+  const brandColorRef = useRef(brandColor)
+
   colorCountRef.current = colorCount
   locksRef.current = locks
   paletteRef.current = palette
+  brandColorRef.current = brandColor
 
   // ── History ──────────────────────────────────────────────────────────────
-  const pushToHistory = useCallback((p, l, c) => {
+  const pushToHistory = useCallback((p, l, c, bc) => {
     setHistory(h => [
       ...h.slice(-9),
-      { palette: [...p], locks: [...l], colorCount: c, at: Date.now() },
+      { palette: [...p], locks: [...l], colorCount: c, brandColor: bc ?? null, at: Date.now() },
     ])
     setRedoHistory([])
   }, [])
@@ -1704,6 +1738,7 @@ export default function App() {
     setPalette(entry.palette)
     setLocks(new Set(entry.locks))
     setColorCount(entry.colorCount)
+    setBrandColor(entry.brandColor ?? null)
     setOpenSlider(null)
     setCurrentView('extract')
   }
@@ -1711,10 +1746,11 @@ export default function App() {
   const undo = () => {
     if (!history.length) return
     const prev = history[history.length - 1]
-    setRedoHistory(r => [...r.slice(-9), { palette: [...palette], locks: [...locks], colorCount, at: Date.now() }])
+    setRedoHistory(r => [...r.slice(-9), { palette: [...palette], locks: [...locks], colorCount, brandColor, at: Date.now() }])
     setPalette(prev.palette)
     setLocks(new Set(prev.locks))
     setColorCount(prev.colorCount)
+    setBrandColor(prev.brandColor ?? null)
     setOpenSlider(null)
     setHistory(h => h.slice(0, -1))
   }
@@ -1722,10 +1758,11 @@ export default function App() {
   const redo = () => {
     if (!redoHistory.length) return
     const next = redoHistory[redoHistory.length - 1]
-    setHistory(h => [...h.slice(-9), { palette: [...palette], locks: [...locks], colorCount, at: Date.now() }])
+    setHistory(h => [...h.slice(-9), { palette: [...palette], locks: [...locks], colorCount, brandColor, at: Date.now() }])
     setPalette(next.palette)
     setLocks(new Set(next.locks))
     setColorCount(next.colorCount)
+    setBrandColor(next.brandColor ?? null)
     setOpenSlider(null)
     setRedoHistory(r => r.slice(0, -1))
   }
@@ -1794,8 +1831,10 @@ export default function App() {
     const { palette: extracted, candidateCount } = await designSystemExtract(
       imgRef.current, count, currentLocks, currentPalette
     )
+    const bc = brandColorRef.current
+    const result = bc !== null ? harmonizeTowardBrand(extracted, bc) : extracted
     setExtractionInfo({ candidates: candidateCount, selected: count })
-    return extracted
+    return result
   }, [])
 
   // ── Region extraction (design-system engine) ─────────────────────────────
@@ -1814,7 +1853,9 @@ export default function App() {
     const count = colorCountRef.current
     const cl = locksRef.current
     const cp = paletteRef.current
-    const { palette: newPalette, candidateCount } = await designSystemExtract(canvas, count, cl, cp)
+    const { palette: extracted, candidateCount } = await designSystemExtract(canvas, count, cl, cp)
+    const bc = brandColorRef.current
+    const newPalette = bc !== null ? harmonizeTowardBrand(extracted, bc) : extracted
     setExtractionInfo({ candidates: candidateCount, selected: count })
     setPalette(newPalette)
   }, [])
@@ -1831,6 +1872,7 @@ export default function App() {
     setOpenSlider(null)
     setHistory([])
     setRedoHistory([])
+    setBrandColor(null)
     setUrlError(null)
     setSamplingMode('global')
     setRegionPos({ x: 0.5, y: 0.5 })
@@ -1938,7 +1980,7 @@ export default function App() {
     const newCount = colorCount + delta
     if (newCount < 3 || newCount > 8) return
     if (newCount < activeLocksCount) return
-    pushToHistory(palette, locks, colorCount)
+    pushToHistory(palette, locks, colorCount, brandColor)
     const newLocks = new Set([...locks].filter(i => i < newCount))
     setLocks(newLocks)
     setColorCount(newCount)
@@ -2025,7 +2067,7 @@ export default function App() {
     }
     setHexError(null)
     const { palette: newPalette, roles: newRoles } = generateDesignSystemFromHex(normalized, colorCount)
-    pushToHistory(palette, locks, colorCount)
+    pushToHistory(palette, locks, colorCount, brandColor)
     setPalette(newPalette)
     setRoles(newRoles)
     setLocks(new Set())
@@ -2044,11 +2086,21 @@ export default function App() {
     if (openSlider === i) setOpenSlider(null)
   }
 
+  // ── Pin (brand color) ─────────────────────────────────────────────────────
+  const togglePin = (i, e) => {
+    e.stopPropagation()
+    setBrandColor(prev => {
+      if (prev === i) return null
+      setLocks(l => { const n = new Set(l); n.add(i); return n })
+      return i
+    })
+  }
+
   // ── HSL ──────────────────────────────────────────────────────────────────
   const handleSwatchClick = (i) => {
     if (locks.has(i)) { handleCopy(palette[i], i); return }
     if (openSlider === i) { setOpenSlider(null); return }
-    pushToHistory(palette, locks, colorCount)
+    pushToHistory(palette, locks, colorCount, brandColor)
     setOpenSlider(i)
     setSliderHsl(hexToHsl(palette[i]))
   }
@@ -2133,7 +2185,7 @@ export default function App() {
   const handleAutoFix = (i, bgHex) => {
     const fixed = autoFixContrast(palette[i], bgHex)
     if (fixed !== palette[i]) {
-      pushToHistory(palette, locks, colorCount)
+      pushToHistory(palette, locks, colorCount, brandColor)
       setPalette(p => p.map((h, idx) => idx === i ? fixed : h))
     }
   }
@@ -2455,11 +2507,13 @@ export default function App() {
                       const level = contrast >= 7 ? 'AAA' : contrast >= 4.5 ? 'AA' : null
                       const isOpen = openSlider === i
                       const isLocked = locks.has(i)
+                      const isPinned = brandColor === i
                       return (
                         <div key={i} className={`swatch-row ${isOpen ? 'swatch-row--open' : ''}`} style={isOpen ? { flex: 'none' } : undefined}>
                           <div className="swatch-row-main" onClick={() => handleSwatchClick(i)}>
                             <span className="swatch-block" style={{ background: hex }}>
-                              {isLocked && <span className="swatch-lock-overlay"><LockIcon locked={true} /></span>}
+                              {isLocked && !isPinned && <span className="swatch-lock-overlay"><LockIcon locked={true} /></span>}
+                              {isPinned && <span className="swatch-pin-overlay"><PinIcon /></span>}
                             </span>
                             <div className="swatch-labels">
                               <span className="swatch-hex">{hex}</span>
@@ -2504,6 +2558,11 @@ export default function App() {
                               )}
                             </div>
                             <div className="swatch-actions">
+                              <button
+                                className={`swatch-action ${isPinned ? 'swatch-action--pinned' : ''}`}
+                                onClick={(e) => togglePin(i, e)}
+                                title={isPinned ? 'Unpin brand color' : 'Pin as brand color'}
+                              ><PinIcon /></button>
                               <button
                                 className={`swatch-action ${isLocked ? 'swatch-action--locked' : ''}`}
                                 onClick={(e) => toggleLock(i, e)}
