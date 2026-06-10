@@ -1546,6 +1546,34 @@ function urlLoadError(originalUrl, resolvedUrl, reason) {
   return "Couldn't load that image. The URL may be invalid, expired, or the server may not allow cross-origin requests."
 }
 
+// ── Hex → design system (pure math, no image needed) ────────────────────────
+function generateDesignSystemFromHex(hex, count) {
+  const { L, C, H } = hexToOklch(hex)
+  const seedC = Math.max(C, 0.04)
+
+  let textHex = deriveOklch(0.18, Math.min(seedC * 0.3, 0.03), H)
+  let bgHex   = deriveOklch(0.96, Math.min(seedC * 0.12, 0.02), H)
+  if (getContrastRatio(textHex, bgHex) < 7) {
+    textHex = deriveOklch(0.12, 0.01, H)
+    bgHex   = deriveOklch(0.97, 0.005, H)
+  }
+  const roleHexes = {
+    text:       textHex,
+    background: bgHex,
+    primary:    hex,
+    secondary:  deriveOklch(L * 0.9 + 0.06, Math.max(seedC * 0.8, 0.08), (H + 165) % 360),
+    accent:     deriveOklch(Math.min(L + 0.08, 0.78), Math.max(seedC * 0.9, 0.09), (H + 38) % 360),
+    surface:    deriveOklch(0.88, Math.min(seedC * 0.08, 0.012), H),
+    muted:      deriveOklch(0.55, Math.min(seedC * 0.18, 0.025), H),
+    border:     deriveOklch(0.80, Math.min(seedC * 0.10, 0.018), H),
+  }
+  const selectedRoles = ROLE_PRIORITY.slice(0, count)
+  return {
+    palette: selectedRoles.map(r => roleHexes[r]),
+    roles:   Object.fromEntries(selectedRoles.map((r, i) => [i, r])),
+  }
+}
+
 // ── URL hash encode / decode ─────────────────────────────────────────────────
 function encodeHash({ palette, roles, colorCount, previewTemplate, uiBg }) {
   try {
@@ -1591,6 +1619,8 @@ export default function App() {
   const [inputMode, setInputMode]   = useState('upload')
   const [urlInput, setUrlInput]     = useState('')
   const [urlError, setUrlError]     = useState(null)
+  const [hexInput, setHexInput]     = useState('')
+  const [hexError, setHexError]     = useState(null)
   const [urlLoading, setUrlLoading] = useState(false)
   const [dragging, setDragging]     = useState(false)
   const [samplingMode, setSamplingMode] = useState('global')
@@ -1985,6 +2015,24 @@ export default function App() {
     runRegionExtraction(pos)
   }
 
+  // ── Hex generate ─────────────────────────────────────────────────────────
+  const handleHexGenerate = () => {
+    const raw = hexInput.trim()
+    const normalized = raw.startsWith('#') ? raw : '#' + raw
+    if (!/^#[0-9a-fA-F]{6}$/.test(normalized)) {
+      setHexError('Enter a valid 6-digit hex, e.g. #3A86FF')
+      return
+    }
+    setHexError(null)
+    const { palette: newPalette, roles: newRoles } = generateDesignSystemFromHex(normalized, colorCount)
+    pushToHistory(palette, locks, colorCount)
+    setPalette(newPalette)
+    setRoles(newRoles)
+    setLocks(new Set())
+    setOpenSlider(null)
+    setExtractionInfo({ candidates: 1, selected: colorCount })
+  }
+
   // ── Lock ─────────────────────────────────────────────────────────────────
   const toggleLock = (i, e) => {
     e.stopPropagation()
@@ -2266,11 +2314,11 @@ export default function App() {
 
               {/* Input mode switcher */}
               <div className="input-modes">
-                {['upload', 'url', 'camera'].map(m => (
+                {['upload', 'url', 'camera', 'hex'].map(m => (
                   <button
                     key={m}
                     className={`input-mode-btn ${inputMode === m ? 'input-mode-btn--active' : ''}`}
-                    onClick={() => { setInputMode(m); setUrlError(null) }}
+                    onClick={() => { setInputMode(m); setUrlError(null); setHexError(null) }}
                   >{m}</button>
                 ))}
               </div>
@@ -2321,6 +2369,40 @@ export default function App() {
                   open camera
                   <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={onFileChange} />
                 </button>
+              )}
+
+              {inputMode === 'hex' && (
+                <div className="url-mode">
+                  <div className="url-row-sm">
+                    <span
+                      className="hex-swatch-preview"
+                      style={{
+                        background: (() => {
+                          const n = hexInput.trim()
+                          const h = n.startsWith('#') ? n : '#' + n
+                          return /^#[0-9a-fA-F]{6}$/.test(h) ? h : undefined
+                        })()
+                      }}
+                    />
+                    <input
+                      type="text"
+                      className="url-input-sm"
+                      placeholder="#3A86FF"
+                      value={hexInput}
+                      onChange={e => { setHexInput(e.target.value); setHexError(null) }}
+                      onKeyDown={e => e.key === 'Enter' && handleHexGenerate()}
+                      maxLength={7}
+                      autoFocus
+                      spellCheck={false}
+                    />
+                    <button
+                      className="url-go"
+                      onClick={handleHexGenerate}
+                      disabled={!hexInput.trim()}
+                    >→</button>
+                  </div>
+                  {hexError && <p className="url-err">{hexError}</p>}
+                </div>
               )}
 
               {/* Undo / redo */}
