@@ -1546,11 +1546,41 @@ function urlLoadError(originalUrl, resolvedUrl, reason) {
   return "Couldn't load that image. The URL may be invalid, expired, or the server may not allow cross-origin requests."
 }
 
+// ── URL hash encode / decode ─────────────────────────────────────────────────
+function encodeHash({ palette, roles, colorCount, previewTemplate, uiBg }) {
+  try {
+    return btoa(JSON.stringify({
+      p: palette,
+      r: roles,
+      n: colorCount,
+      t: previewTemplate,
+      u: uiBg,
+    }))
+  } catch { return '' }
+}
+
+function decodeHash(hash) {
+  try {
+    if (!hash || !hash.startsWith('#')) return null
+    const raw = hash.slice(1)
+    if (!raw) return null
+    const obj = JSON.parse(atob(raw))
+    if (!Array.isArray(obj.p) || !obj.p.every(h => /^#[0-9a-fA-F]{6}$/.test(h))) return null
+    return {
+      palette:         obj.p,
+      roles:           (obj.r && typeof obj.r === 'object' && !Array.isArray(obj.r)) ? obj.r : {},
+      colorCount:      typeof obj.n === 'number' ? obj.n : obj.p.length,
+      previewTemplate: typeof obj.t === 'string' ? obj.t : 'social',
+      uiBg:            obj.u === 'light' ? 'light' : 'dark',
+    }
+  } catch { return null }
+}
+
 // ── App ──────────────────────────────────────────────────────────────────────
 export default function App() {
   // ── Core palette state ───────────────────────────────────────────────────
-  const [colorCount, setColorCount] = useState(6)
-  const [palette, setPalette]       = useState([])
+  const [colorCount, setColorCount] = useState(() => decodeHash(window.location.hash)?.colorCount ?? 6)
+  const [palette, setPalette]       = useState(() => decodeHash(window.location.hash)?.palette ?? [])
   const [locks, setLocks]           = useState(new Set())
   const [openSlider, setOpenSlider] = useState(null)
   const [sliderHsl, setSliderHsl]   = useState(null)
@@ -1568,6 +1598,7 @@ export default function App() {
 
   // ── UI / panel state ─────────────────────────────────────────────────────
   const [copied, setCopied]         = useState(null)
+  const [copiedLink, setCopiedLink] = useState(false)
   const [visionMode, setVisionMode] = useState('normal')
   const [exportTab, setExportTab]       = useState('css')
   const [scaleExportTab, setScaleExportTab] = useState('tw4')
@@ -1575,8 +1606,8 @@ export default function App() {
 
   // ── Sprint 2.3 state ─────────────────────────────────────────────────────
   const [redoHistory, setRedoHistory]       = useState([])
-  const [uiBg, setUiBg]                     = useState('dark')
-  const [roles, setRoles]                   = useState({})
+  const [uiBg, setUiBg]                     = useState(() => decodeHash(window.location.hash)?.uiBg ?? 'dark')
+  const [roles, setRoles]                   = useState(() => decodeHash(window.location.hash)?.roles ?? {})
   const [customTemplate, setCustomTemplate] = useState('{name}: {hex};')
 
   // ── Sprint 2.5 state ─────────────────────────────────────────────────────
@@ -1594,7 +1625,7 @@ export default function App() {
   const [extractionInfo, setExtractionInfo] = useState(null) // { candidates, selected }
 
   // ── Sprint 2.8 state ─────────────────────────────────────────────────────
-  const [previewTemplate, setPreviewTemplate] = useState('social')
+  const [previewTemplate, setPreviewTemplate] = useState(() => decodeHash(window.location.hash)?.previewTemplate ?? 'social')
 
   // ── App theme ─────────────────────────────────────────────────────────────
   // 'dark' | 'light' | 'system'  — dark is the initial default.
@@ -1706,6 +1737,16 @@ export default function App() {
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
   }, [])
+
+  // ── Sync palette state → URL hash (no page reload, no browser history entry) ─
+  useEffect(() => {
+    if (!palette.length) {
+      if (window.location.hash) window.history.replaceState(null, '', window.location.pathname)
+      return
+    }
+    const h = encodeHash({ palette, roles, colorCount, previewTemplate, uiBg })
+    if (h) window.history.replaceState(null, '', '#' + h)
+  }, [palette, roles, colorCount, previewTemplate, uiBg])
 
   const handleDividerMouseDown = (side, e) => {
     e.preventDefault()
@@ -2771,6 +2812,16 @@ export default function App() {
                     <div className="export-download-row">
                       <button className="export-dl-btn" onClick={downloadPNG} title="Download PNG">PNG</button>
                       <button className="export-dl-btn" onClick={downloadTXT} title="Download TXT">TXT</button>
+                      <button
+                        className="export-dl-btn"
+                        onClick={() => {
+                          navigator.clipboard.writeText(window.location.href).then(() => {
+                            setCopiedLink(true)
+                            setTimeout(() => setCopiedLink(false), 1500)
+                          })
+                        }}
+                        title="Copy shareable link"
+                      >{copiedLink ? '✓ Copied!' : 'Copy link'}</button>
                       <button
                         className={`export-copy-btn ${copied === 'export' ? 'export-copy-btn--copied' : ''}`}
                         onClick={handleExport}
