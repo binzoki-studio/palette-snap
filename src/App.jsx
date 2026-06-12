@@ -1859,15 +1859,14 @@ export default function App() {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
-  // ── Sync palette state → URL hash (no page reload, no browser history entry) ─
+  // ── URL hash: restore a shared link on load, then stop persisting ────────────
+  // A shared link (#...) is decoded into state by the useState initializers above.
+  // We strip it from the URL on mount so the app never auto-restores on a plain
+  // refresh — refreshing always returns to the empty state. "Copy link" re-encodes
+  // the current selection into the URL on demand for sharing.
   useEffect(() => {
-    if (!palette.length) {
-      if (window.location.hash) window.history.replaceState(null, '', window.location.pathname)
-      return
-    }
-    const h = encodeHash({ palette, roles, colorCount, previewTemplate, uiBg })
-    if (h) window.history.replaceState(null, '', '#' + h)
-  }, [palette, roles, colorCount, previewTemplate, uiBg])
+    if (window.location.hash) window.history.replaceState(null, '', window.location.pathname)
+  }, [])
 
   const handleDividerMouseDown = (side, e) => {
     e.preventDefault()
@@ -3139,7 +3138,11 @@ export default function App() {
                       <button
                         className="export-dl-btn"
                         onClick={() => {
-                          navigator.clipboard.writeText(window.location.href).then(() => {
+                          const h = encodeHash({ palette, roles, colorCount, previewTemplate, uiBg })
+                          const base = window.location.origin + window.location.pathname
+                          const url = h ? `${base}#${h}` : base
+                          if (h) window.history.replaceState(null, '', '#' + h)
+                          navigator.clipboard.writeText(url).then(() => {
                             setCopiedLink(true)
                             setTimeout(() => setCopiedLink(false), 1500)
                           })
