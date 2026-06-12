@@ -662,6 +662,29 @@
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
+.ib-sv-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 16px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+/* Empty (no color picked yet) */
+.ib-hex-swatch--empty {
+  background:
+    linear-gradient(45deg, transparent 45%, var(--app-fail) 45%, var(--app-fail) 55%, transparent 55%),
+    var(--app-subtle);
+  opacity: 0.6;
+}
+.ib-picker--empty .ib-hue,
+.ib-picker--empty .ib-oklch { opacity: 0.55; }
 .ib-hue {
   position: relative;
   height: 12px;

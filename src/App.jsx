@@ -1694,7 +1694,7 @@ export default function App() {
   const [inputMode, setInputMode]   = useState('upload')
   const [urlInput, setUrlInput]     = useState('')
   const [urlError, setUrlError]     = useState(null)
-  const [pickerHsv, setPickerHsv]   = useState(() => hexToHsv('#3A86FF'))
+  const [pickerHsv, setPickerHsv]   = useState(null) // null = empty state, no color picked yet
   const [hexDraft, setHexDraft]     = useState(null) // string while typing in hex field, else null
   const [recentColors, setRecentColors] = useState([])
   const [urlLoading, setUrlLoading] = useState(false)
@@ -2113,8 +2113,8 @@ export default function App() {
 
   // ── Hex color picker ───────────────────────────────────────────────────────
   // Source of truth is `pickerHsv`; hex + OKLCH are derived each render.
-  const pickerHex   = hsvToHex(pickerHsv.h, pickerHsv.s, pickerHsv.v)
-  const pickerOklch = hexToOklch(pickerHex)
+  const pickerHex   = pickerHsv ? hsvToHex(pickerHsv.h, pickerHsv.s, pickerHsv.v) : null
+  const pickerOklch = pickerHex ? hexToOklch(pickerHex) : null
 
   // Generate a full design system from the picked color (no button — debounced).
   const generateFromPicker = (hex) => {
@@ -2147,7 +2147,7 @@ export default function App() {
     const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height))
     pickerTouchedRef.current = true
     setHexDraft(null)
-    setPickerHsv(prev => ({ ...prev, s: Math.round(x * 100), v: Math.round((1 - y) * 100) }))
+    setPickerHsv(prev => ({ h: prev?.h ?? 0, s: Math.round(x * 100), v: Math.round((1 - y) * 100) }))
   }
   const onPadDown = (e) => { e.currentTarget.setPointerCapture(e.pointerId); padDragRef.current = true; updatePadFromEvent(e) }
   const onPadMove = (e) => { if (padDragRef.current) updatePadFromEvent(e) }
@@ -2160,7 +2160,7 @@ export default function App() {
     const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
     pickerTouchedRef.current = true
     setHexDraft(null)
-    setPickerHsv(prev => ({ ...prev, h: Math.round(x * 360) }))
+    setPickerHsv(prev => ({ h: Math.round(x * 360), s: prev?.s ?? 100, v: prev?.v ?? 100 }))
   }
   const onHueDown = (e) => { e.currentTarget.setPointerCapture(e.pointerId); hueDragRef.current = true; updateHueFromEvent(e) }
   const onHueMove = (e) => { if (hueDragRef.current) updateHueFromEvent(e) }
@@ -2168,7 +2168,8 @@ export default function App() {
 
   // OKLCH sliders — recompute hex from the changed channel, fold back into HSV
   const setOklchChannel = (key, val) => {
-    const next = { L: pickerOklch.L, C: pickerOklch.C, H: pickerOklch.H, [key]: val }
+    const base = pickerOklch ?? { L: 0.7, C: 0.12, H: 0 }
+    const next = { L: base.L, C: base.C, H: base.H, [key]: val }
     pickerTouchedRef.current = true
     setHexDraft(null)
     setPickerHsv(hexToHsv(deriveOklch(next.L, next.C, next.H)))
@@ -2538,22 +2539,25 @@ export default function App() {
 
                 {/* Color picker */}
                 {inputMode === 'hex' && (
-                  <div className="ib-pad ib-picker">
+                  <div className={`ib-pad ib-picker ${!pickerHsv ? 'ib-picker--empty' : ''}`}>
                     {/* Saturation / value pad */}
                     <div
                       className="ib-sv-pad"
                       ref={padRef}
-                      style={{ background: hsvToHex(pickerHsv.h, 100, 100) }}
+                      style={{ background: pickerHsv ? hsvToHex(pickerHsv.h, 100, 100) : '#9aa0a8' }}
                       onPointerDown={onPadDown}
                       onPointerMove={onPadMove}
                       onPointerUp={onPadUp}
                     >
                       <div className="ib-sv-white" />
                       <div className="ib-sv-black" />
-                      <div
-                        className="ib-sv-thumb"
-                        style={{ left: `${pickerHsv.s}%`, top: `${100 - pickerHsv.v}%`, background: pickerHex }}
-                      />
+                      {pickerHsv && (
+                        <div
+                          className="ib-sv-thumb"
+                          style={{ left: `${pickerHsv.s}%`, top: `${100 - pickerHsv.v}%`, background: pickerHex }}
+                        />
+                      )}
+                      {!pickerHsv && <span className="ib-sv-hint">Pick a color to build a system</span>}
                     </div>
 
                     {/* Hue slider */}
@@ -2564,17 +2568,21 @@ export default function App() {
                       onPointerMove={onHueMove}
                       onPointerUp={onHueUp}
                     >
-                      <div className="ib-hue-thumb" style={{ left: `${(pickerHsv.h / 360) * 100}%` }} />
+                      {pickerHsv && <div className="ib-hue-thumb" style={{ left: `${(pickerHsv.h / 360) * 100}%` }} />}
                     </div>
 
                     {/* Hex field */}
                     <div className="ib-hex-row">
-                      <span className="ib-hex-swatch" style={{ background: pickerHex }} />
+                      <span
+                        className={`ib-hex-swatch ${!pickerHex ? 'ib-hex-swatch--empty' : ''}`}
+                        style={pickerHex ? { background: pickerHex } : undefined}
+                      />
                       <input
                         className="ib-hex-input"
                         spellCheck={false}
                         maxLength={7}
-                        value={hexDraft ?? pickerHex.toUpperCase()}
+                        placeholder="#———"
+                        value={hexDraft ?? (pickerHex ? pickerHex.toUpperCase() : '')}
                         onChange={onHexFieldChange}
                         onBlur={() => setHexDraft(null)}
                       />
@@ -2585,20 +2593,20 @@ export default function App() {
                       <div className="ib-ok-row">
                         <span className="ib-ok-lbl">L</span>
                         <input type="range" className="ib-ok-slider" min="0" max="1" step="0.005"
-                          value={pickerOklch.L} onChange={e => setOklchChannel('L', +e.target.value)} />
-                        <span className="ib-ok-val">{Math.round(pickerOklch.L * 100)}</span>
+                          value={pickerOklch?.L ?? 0} onChange={e => setOklchChannel('L', +e.target.value)} />
+                        <span className="ib-ok-val">{pickerOklch ? Math.round(pickerOklch.L * 100) : '—'}</span>
                       </div>
                       <div className="ib-ok-row">
                         <span className="ib-ok-lbl">C</span>
                         <input type="range" className="ib-ok-slider" min="0" max="0.37" step="0.002"
-                          value={pickerOklch.C} onChange={e => setOklchChannel('C', +e.target.value)} />
-                        <span className="ib-ok-val">{pickerOklch.C.toFixed(3)}</span>
+                          value={pickerOklch?.C ?? 0} onChange={e => setOklchChannel('C', +e.target.value)} />
+                        <span className="ib-ok-val">{pickerOklch ? pickerOklch.C.toFixed(3) : '—'}</span>
                       </div>
                       <div className="ib-ok-row">
                         <span className="ib-ok-lbl">H</span>
                         <input type="range" className="ib-ok-slider" min="0" max="360" step="1"
-                          value={pickerOklch.H} onChange={e => setOklchChannel('H', +e.target.value)} />
-                        <span className="ib-ok-val">{Math.round(pickerOklch.H)}°</span>
+                          value={pickerOklch?.H ?? 0} onChange={e => setOklchChannel('H', +e.target.value)} />
+                        <span className="ib-ok-val">{pickerOklch ? `${Math.round(pickerOklch.H)}°` : '—'}</span>
                       </div>
                     </div>
 
