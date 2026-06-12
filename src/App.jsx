@@ -59,6 +59,38 @@ function hslToHex(h, s, l) {
   return `#${f(0)}${f(8)}${f(4)}`
 }
 
+// ── HSV ⇄ hex (for the square color picker) ──────────────────────────────────
+function hsvToHex(h, s, v) {
+  s /= 100; v /= 100
+  const c = v * s
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1))
+  const m = v - c
+  let r = 0, g = 0, b = 0
+  if      (h < 60)  { r = c; g = x; b = 0 }
+  else if (h < 120) { r = x; g = c; b = 0 }
+  else if (h < 180) { r = 0; g = c; b = x }
+  else if (h < 240) { r = 0; g = x; b = c }
+  else if (h < 300) { r = x; g = 0; b = c }
+  else              { r = c; g = 0; b = x }
+  const f = n => Math.round((n + m) * 255).toString(16).padStart(2, '0')
+  return `#${f(r)}${f(g)}${f(b)}`
+}
+
+function hexToHsv(hex) {
+  const r = parseInt(hex.slice(1, 3), 16) / 255
+  const g = parseInt(hex.slice(3, 5), 16) / 255
+  const b = parseInt(hex.slice(5, 7), 16) / 255
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min
+  let h = 0
+  if (d !== 0) {
+    if (max === r)      h = (g - b) / d + (g < b ? 6 : 0)
+    else if (max === g) h = (b - r) / d + 2
+    else                h = (r - g) / d + 4
+    h *= 60
+  }
+  return { h: Math.round(h), s: Math.round((max === 0 ? 0 : d / max) * 100), v: Math.round(max * 100) }
+}
+
 function getLuminance(hex) {
   const ch = [hex.slice(1,3), hex.slice(3,5), hex.slice(5,7)]
     .map(x => parseInt(x, 16) / 255)
@@ -1662,8 +1694,9 @@ export default function App() {
   const [inputMode, setInputMode]   = useState('upload')
   const [urlInput, setUrlInput]     = useState('')
   const [urlError, setUrlError]     = useState(null)
-  const [hexInput, setHexInput]     = useState('')
-  const [hexError, setHexError]     = useState(null)
+  const [pickerHsv, setPickerHsv]   = useState(() => hexToHsv('#3A86FF'))
+  const [hexDraft, setHexDraft]     = useState(null) // string while typing in hex field, else null
+  const [recentColors, setRecentColors] = useState([])
   const [urlLoading, setUrlLoading] = useState(false)
   const [dragging, setDragging]     = useState(false)
   const [samplingMode, setSamplingMode] = useState('global')
@@ -1732,6 +1765,14 @@ export default function App() {
   const customSelRef        = useRef({ start: 0, end: 0 })
 
   const brandColorRef = useRef(brandColor)
+
+  // ── Hex color picker refs ──────────────────────────────────────────────────
+  const padRef            = useRef(null)
+  const huePadRef         = useRef(null)
+  const padDragRef        = useRef(false)
+  const hueDragRef        = useRef(false)
+  const pickerTouchedRef  = useRef(false)
+  const lastGenRef        = useRef(null)
 
   colorCountRef.current = colorCount
   locksRef.current = locks
@@ -2070,22 +2111,84 @@ export default function App() {
     runRegionExtraction(pos)
   }
 
-  // ── Hex generate ─────────────────────────────────────────────────────────
-  const handleHexGenerate = () => {
-    const raw = hexInput.trim()
-    const normalized = raw.startsWith('#') ? raw : '#' + raw
-    if (!/^#[0-9a-fA-F]{6}$/.test(normalized)) {
-      setHexError('Enter a valid 6-digit hex, e.g. #3A86FF')
-      return
-    }
-    setHexError(null)
-    const { palette: newPalette, roles: newRoles } = generateDesignSystemFromHex(normalized, colorCount)
-    pushToHistory(palette, locks, colorCount, brandColor)
+  // ── Hex color picker ───────────────────────────────────────────────────────
+  // Source of truth is `pickerHsv`; hex + OKLCH are derived each render.
+  const pickerHex   = hsvToHex(pickerHsv.h, pickerHsv.s, pickerHsv.v)
+  const pickerOklch = hexToOklch(pickerHex)
+
+  // Generate a full design system from the picked color (no button — debounced).
+  const generateFromPicker = (hex) => {
+    const { palette: newPalette, roles: newRoles } = generateDesignSystemFromHex(hex, colorCountRef.current)
+    pushToHistory(paletteRef.current, locksRef.current, colorCountRef.current, brandColorRef.current)
     setPalette(newPalette)
     setRoles(newRoles)
     setLocks(new Set())
     setOpenSlider(null)
-    setExtractionInfo({ candidates: 1, selected: colorCount })
+    setExtractionInfo({ candidates: 1, selected: colorCountRef.current })
+    setRecentColors(prev => [hex, ...prev.filter(c => c.toLowerCase() !== hex.toLowerCase())].slice(0, 8))
+  }
+
+  // Debounced auto-generate, mirroring how URL loading settles before acting.
+  useEffect(() => {
+    if (inputMode !== 'hex' || !pickerTouchedRef.current) return
+    if (lastGenRef.current === pickerHex) return
+    const t = setTimeout(() => {
+      lastGenRef.current = pickerHex
+      generateFromPicker(pickerHex)
+    }, 400)
+    return () => clearTimeout(t)
+  }, [pickerHex, inputMode]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // SL/SV gradient pad
+  const updatePadFromEvent = (e) => {
+    const rect = padRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+    const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height))
+    pickerTouchedRef.current = true
+    setHexDraft(null)
+    setPickerHsv(prev => ({ ...prev, s: Math.round(x * 100), v: Math.round((1 - y) * 100) }))
+  }
+  const onPadDown = (e) => { e.currentTarget.setPointerCapture(e.pointerId); padDragRef.current = true; updatePadFromEvent(e) }
+  const onPadMove = (e) => { if (padDragRef.current) updatePadFromEvent(e) }
+  const onPadUp   = () => { padDragRef.current = false }
+
+  // Hue slider
+  const updateHueFromEvent = (e) => {
+    const rect = huePadRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
+    pickerTouchedRef.current = true
+    setHexDraft(null)
+    setPickerHsv(prev => ({ ...prev, h: Math.round(x * 360) }))
+  }
+  const onHueDown = (e) => { e.currentTarget.setPointerCapture(e.pointerId); hueDragRef.current = true; updateHueFromEvent(e) }
+  const onHueMove = (e) => { if (hueDragRef.current) updateHueFromEvent(e) }
+  const onHueUp   = () => { hueDragRef.current = false }
+
+  // OKLCH sliders — recompute hex from the changed channel, fold back into HSV
+  const setOklchChannel = (key, val) => {
+    const next = { L: pickerOklch.L, C: pickerOklch.C, H: pickerOklch.H, [key]: val }
+    pickerTouchedRef.current = true
+    setHexDraft(null)
+    setPickerHsv(hexToHsv(deriveOklch(next.L, next.C, next.H)))
+  }
+
+  // Hex text field
+  const onHexFieldChange = (e) => {
+    const raw = e.target.value
+    setHexDraft(raw)
+    const norm = (raw.startsWith('#') ? raw : '#' + raw).trim()
+    if (/^#[0-9a-fA-F]{6}$/.test(norm)) {
+      pickerTouchedRef.current = true
+      setPickerHsv(hexToHsv(norm))
+    }
+  }
+
+  const pickRecentColor = (hex) => {
+    pickerTouchedRef.current = true
+    setHexDraft(null)
+    setPickerHsv(hexToHsv(hex))
   }
 
   // ── Lock ─────────────────────────────────────────────────────────────────
@@ -2341,8 +2444,184 @@ export default function App() {
             </div>
 
             <div className="lp-section-body">
-              {/* Sampling toggle */}
-              {preview && (
+              {/* Tab bar */}
+              <div className="input-modes">
+                {['upload', 'url', 'camera', 'hex'].map(m => (
+                  <button
+                    key={m}
+                    className={`input-mode-btn ${inputMode === m ? 'input-mode-btn--active' : ''}`}
+                    onClick={() => { setInputMode(m); setUrlError(null) }}
+                  >{m === 'hex' ? 'Color' : m}</button>
+                ))}
+              </div>
+
+              {/* Unified input box — contents switch by active tab */}
+              <div className={`input-box ${inputMode === 'upload' && !preview ? 'input-box--dashed' : ''}`}>
+
+                {/* Upload: loaded image fills the box, else drop zone */}
+                {inputMode === 'upload' && (
+                  preview ? (
+                    <div
+                      className={`input-box-image ${samplingMode === 'region' ? 'input-box-image--region' : ''}`}
+                      ref={imageWrapRef}
+                      onMouseDown={handleImageMouseDown}
+                      onMouseMove={handleImageMouseMove}
+                      onMouseUp={handleImageMouseUp}
+                      onMouseLeave={handleImageMouseUp}
+                    >
+                      <img
+                        ref={imgRef}
+                        src={preview}
+                        alt="uploaded"
+                        className="preview-img"
+                        onLoad={onImageLoad}
+                        onError={onImageError}
+                        draggable={false}
+                      />
+                      {samplingMode === 'region' && (
+                        <div
+                          className="region-cursor"
+                          style={{ left: `${regionPos.x * 100}%`, top: `${regionPos.y * 100}%` }}
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <label
+                      className="ib-dropzone"
+                      onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+                      onDragLeave={() => setDragging(false)}
+                      onDrop={onDrop}
+                    >
+                      <svg className="dz-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <rect x="3" y="3" width="18" height="18" rx="3"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <path d="M21 15l-5-5L5 21"/>
+                      </svg>
+                      <span className="dz-hint">Drop an image or click to browse</span>
+                      <span className="dz-sub">PNG · JPG · WEBP · SVG</span>
+                      <input ref={uploadInputRef} type="file" accept="image/*" hidden onChange={onFileChange} />
+                    </label>
+                  )
+                )}
+
+                {/* URL */}
+                {inputMode === 'url' && (
+                  <div className="ib-pad ib-url">
+                    <input
+                      type="url"
+                      className="ib-text-input"
+                      placeholder="https://…"
+                      value={urlInput}
+                      onChange={e => { setUrlInput(e.target.value); setUrlError(null) }}
+                      onKeyDown={e => e.key === 'Enter' && handleUrlLoad()}
+                    />
+                    <button
+                      className="ib-btn"
+                      onClick={handleUrlLoad}
+                      disabled={!urlInput.trim() || urlLoading}
+                    >{urlLoading ? 'Loading…' : 'Load'}</button>
+                    {urlError && <p className="ib-err">{urlError}</p>}
+                  </div>
+                )}
+
+                {/* Camera */}
+                {inputMode === 'camera' && (
+                  <button className="ib-pad ib-camera" onClick={() => cameraInputRef.current?.click()}>
+                    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M14.5 4h-5L8 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-4l-1.5-2z"/>
+                      <circle cx="12" cy="13" r="3.5"/>
+                    </svg>
+                    <span className="ib-camera-label">Take a photo</span>
+                    <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={onFileChange} />
+                  </button>
+                )}
+
+                {/* Color picker */}
+                {inputMode === 'hex' && (
+                  <div className="ib-pad ib-picker">
+                    {/* Saturation / value pad */}
+                    <div
+                      className="ib-sv-pad"
+                      ref={padRef}
+                      style={{ background: hsvToHex(pickerHsv.h, 100, 100) }}
+                      onPointerDown={onPadDown}
+                      onPointerMove={onPadMove}
+                      onPointerUp={onPadUp}
+                    >
+                      <div className="ib-sv-white" />
+                      <div className="ib-sv-black" />
+                      <div
+                        className="ib-sv-thumb"
+                        style={{ left: `${pickerHsv.s}%`, top: `${100 - pickerHsv.v}%`, background: pickerHex }}
+                      />
+                    </div>
+
+                    {/* Hue slider */}
+                    <div
+                      className="ib-hue"
+                      ref={huePadRef}
+                      onPointerDown={onHueDown}
+                      onPointerMove={onHueMove}
+                      onPointerUp={onHueUp}
+                    >
+                      <div className="ib-hue-thumb" style={{ left: `${(pickerHsv.h / 360) * 100}%` }} />
+                    </div>
+
+                    {/* Hex field */}
+                    <div className="ib-hex-row">
+                      <span className="ib-hex-swatch" style={{ background: pickerHex }} />
+                      <input
+                        className="ib-hex-input"
+                        spellCheck={false}
+                        maxLength={7}
+                        value={hexDraft ?? pickerHex.toUpperCase()}
+                        onChange={onHexFieldChange}
+                        onBlur={() => setHexDraft(null)}
+                      />
+                    </div>
+
+                    {/* OKLCH sliders */}
+                    <div className="ib-oklch">
+                      <div className="ib-ok-row">
+                        <span className="ib-ok-lbl">L</span>
+                        <input type="range" className="ib-ok-slider" min="0" max="1" step="0.005"
+                          value={pickerOklch.L} onChange={e => setOklchChannel('L', +e.target.value)} />
+                        <span className="ib-ok-val">{Math.round(pickerOklch.L * 100)}</span>
+                      </div>
+                      <div className="ib-ok-row">
+                        <span className="ib-ok-lbl">C</span>
+                        <input type="range" className="ib-ok-slider" min="0" max="0.37" step="0.002"
+                          value={pickerOklch.C} onChange={e => setOklchChannel('C', +e.target.value)} />
+                        <span className="ib-ok-val">{pickerOklch.C.toFixed(3)}</span>
+                      </div>
+                      <div className="ib-ok-row">
+                        <span className="ib-ok-lbl">H</span>
+                        <input type="range" className="ib-ok-slider" min="0" max="360" step="1"
+                          value={pickerOklch.H} onChange={e => setOklchChannel('H', +e.target.value)} />
+                        <span className="ib-ok-val">{Math.round(pickerOklch.H)}°</span>
+                      </div>
+                    </div>
+
+                    {/* Recent colors */}
+                    {recentColors.length > 0 && (
+                      <div className="ib-recent">
+                        {recentColors.map((c, i) => (
+                          <button
+                            key={i}
+                            className="ib-recent-chip"
+                            style={{ background: c }}
+                            onClick={() => pickRecentColor(c)}
+                            title={c}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Below the box: sampling toggle (upload only), undo/redo, quality indicator */}
+              {preview && inputMode === 'upload' && (
                 <div className="sampling-toggle">
                   {['global', 'region'].map(m => (
                     <button
@@ -2354,130 +2633,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* Image preview (only when loaded) */}
-              {preview && (
-                <div className="image-container-wrap">
-                  <div
-                    className={`image-container ${samplingMode === 'region' ? 'image-container--region' : ''}`}
-                    ref={imageWrapRef}
-                    onMouseDown={handleImageMouseDown}
-                    onMouseMove={handleImageMouseMove}
-                    onMouseUp={handleImageMouseUp}
-                    onMouseLeave={handleImageMouseUp}
-                  >
-                    <img
-                      ref={imgRef}
-                      src={preview}
-                      alt="uploaded"
-                      className="preview-img"
-                      onLoad={onImageLoad}
-                      onError={onImageError}
-                      draggable={false}
-                    />
-                    {samplingMode === 'region' && (
-                      <div
-                        className="region-cursor"
-                        style={{ left: `${regionPos.x * 100}%`, top: `${regionPos.y * 100}%` }}
-                      />
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Input mode switcher */}
-              <div className="input-modes">
-                {['upload', 'url', 'camera', 'hex'].map(m => (
-                  <button
-                    key={m}
-                    className={`input-mode-btn ${inputMode === m ? 'input-mode-btn--active' : ''}`}
-                    onClick={() => { setInputMode(m); setUrlError(null); setHexError(null) }}
-                  >{m}</button>
-                ))}
-              </div>
-
-              {/* Mode panels */}
-              {inputMode === 'upload' && (
-                <label
-                  className={`dropzone-sm ${dragging ? 'dropzone-sm--active' : ''}`}
-                  onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
-                  onDragLeave={() => setDragging(false)}
-                  onDrop={onDrop}
-                >
-                  <svg className="dz-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <rect x="3" y="3" width="18" height="18" rx="3"/>
-                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                    <path d="M21 15l-5-5L5 21"/>
-                  </svg>
-                  <span className="dz-hint">Drop an image or click to browse</span>
-                  <span className="dz-sub">PNG · JPG · WEBP · SVG</span>
-                  <input ref={uploadInputRef} type="file" accept="image/*" hidden onChange={onFileChange} />
-                </label>
-              )}
-
-              {inputMode === 'url' && (
-                <div className="url-mode">
-                  <div className="url-row-sm">
-                    <input
-                      type="url"
-                      className="url-input-sm"
-                      placeholder="https://…"
-                      value={urlInput}
-                      onChange={e => { setUrlInput(e.target.value); setUrlError(null) }}
-                      onKeyDown={e => e.key === 'Enter' && handleUrlLoad()}
-                      autoFocus
-                    />
-                    <button
-                      className="url-go"
-                      onClick={handleUrlLoad}
-                      disabled={!urlInput.trim() || urlLoading}
-                    >{urlLoading ? '…' : '→'}</button>
-                  </div>
-                  {urlError && <p className="url-err">{urlError}</p>}
-                </div>
-              )}
-
-              {inputMode === 'camera' && (
-                <button className="camera-mode-btn" onClick={() => cameraInputRef.current?.click()}>
-                  open camera
-                  <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={onFileChange} />
-                </button>
-              )}
-
-              {inputMode === 'hex' && (
-                <div className="url-mode">
-                  <div className="url-row-sm">
-                    <span
-                      className="hex-swatch-preview"
-                      style={{
-                        background: (() => {
-                          const n = hexInput.trim()
-                          const h = n.startsWith('#') ? n : '#' + n
-                          return /^#[0-9a-fA-F]{6}$/.test(h) ? h : undefined
-                        })()
-                      }}
-                    />
-                    <input
-                      type="text"
-                      className="url-input-sm"
-                      placeholder="#3A86FF"
-                      value={hexInput}
-                      onChange={e => { setHexInput(e.target.value); setHexError(null) }}
-                      onKeyDown={e => e.key === 'Enter' && handleHexGenerate()}
-                      maxLength={7}
-                      autoFocus
-                      spellCheck={false}
-                    />
-                    <button
-                      className="url-go"
-                      onClick={handleHexGenerate}
-                      disabled={!hexInput.trim()}
-                    >→</button>
-                  </div>
-                  {hexError && <p className="url-err">{hexError}</p>}
-                </div>
-              )}
-
-              {/* Undo / redo */}
               <div className="image-controls">
                 <div className="ctrl-undo-redo">
                   <button className="ctrl-btn" onClick={undo} disabled={history.length === 0}>←</button>
