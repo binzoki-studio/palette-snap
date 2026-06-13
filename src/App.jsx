@@ -1698,6 +1698,7 @@ export default function App() {
   const [hexDraft, setHexDraft]     = useState(null) // string while typing in hex field, else null
   const [recentColors, setRecentColors] = useState([])
   const [urlLoading, setUrlLoading] = useState(false)
+  const [cameraError, setCameraError] = useState(null)
   const [dragging, setDragging]     = useState(false)
   const [samplingMode, setSamplingMode] = useState('global')
   const [regionPos, setRegionPos]   = useState({ x: 0.5, y: 0.5 })
@@ -1754,7 +1755,8 @@ export default function App() {
   // ── Refs ─────────────────────────────────────────────────────────────────
   const imgRef          = useRef(null)
   const uploadInputRef  = useRef(null)
-  const cameraInputRef  = useRef(null)
+  const videoRef        = useRef(null)
+  const cameraStreamRef = useRef(null)
   const imageWrapRef    = useRef(null)
   const cropCanvasRef   = useRef(null)
   const colorCountRef   = useRef(6)
@@ -1952,6 +1954,63 @@ export default function App() {
     e.preventDefault()
     setDragging(false)
     extractFromFile(e.dataTransfer.files[0])
+  }
+
+  // ── Webcam ─────────────────────────────────────────────────────────────────
+  const stopCameraStream = useCallback(() => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach(t => t.stop())
+      cameraStreamRef.current = null
+    }
+  }, [])
+
+  // Open the live webcam while the Camera tab is active; stop it on leave/unmount.
+  useEffect(() => {
+    if (inputMode !== 'camera') return
+    let cancelled = false
+    setCameraError(null)
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError('This browser does not support camera access.')
+      return
+    }
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
+      .then(stream => {
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return }
+        cameraStreamRef.current = stream
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          videoRef.current.play().catch(() => {})
+        }
+      })
+      .catch(err => {
+        if (cancelled) return
+        setCameraError(
+          err.name === 'NotAllowedError'
+            ? 'Camera access was blocked. Allow it in your browser settings and reopen this tab.'
+            : err.name === 'NotFoundError'
+            ? 'No camera was found on this device.'
+            : 'Could not start the camera.'
+        )
+      })
+    return () => { cancelled = true; stopCameraStream() }
+  }, [inputMode, stopCameraStream])
+
+  // Grab the current video frame and feed it into the extraction pipeline.
+  const handleCameraCapture = () => {
+    const video = videoRef.current
+    if (!video || !video.videoWidth) return
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height)
+    const dataUrl = canvas.toDataURL('image/png')
+    stopCameraStream()
+    setPreview(dataUrl)
+    setPalette([])
+    setLocks(new Set())
+    setOpenSlider(null)
+    setUrlError(null)
+    setInputMode('upload') // show the captured frame in the box; runs extraction on load
   }
 
   // ── URL ──────────────────────────────────────────────────────────────────
@@ -2524,16 +2583,27 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Camera */}
+                {/* Camera — live webcam */}
                 {inputMode === 'camera' && (
-                  <button className="ib-pad ib-camera" onClick={() => cameraInputRef.current?.click()}>
-                    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M14.5 4h-5L8 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-4l-1.5-2z"/>
-                      <circle cx="12" cy="13" r="3.5"/>
-                    </svg>
-                    <span className="ib-camera-label">Take a photo</span>
-                    <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={onFileChange} />
-                  </button>
+                  <div className="ib-camera-live">
+                    {cameraError ? (
+                      <div className="ib-camera-err">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M14.5 4h-5L8 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-4l-1.5-2z"/>
+                          <circle cx="12" cy="13" r="3.5"/>
+                          <line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" strokeWidth="1.3" />
+                        </svg>
+                        <span>{cameraError}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <video ref={videoRef} className="ib-camera-video" autoPlay playsInline muted />
+                        <button className="ib-shutter" onClick={handleCameraCapture} title="Take photo" aria-label="Take photo">
+                          <span className="ib-shutter-ring" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 )}
 
                 {/* Color picker */}
